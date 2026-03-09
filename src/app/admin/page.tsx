@@ -1,5 +1,8 @@
+import { redirect } from 'next/navigation'
+import { getUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { AdminStats } from '@/types/admin'
+import { Movie } from '@/types'
 import StatsCard from '@/components/admin/StatsCard'
 import RecentMoviesTable from '@/components/admin/RecentMoviesTable'
 import { 
@@ -102,6 +105,9 @@ async function getAdminStats(): Promise<AdminStats> {
           actors: true,
           directors: true,
           trailerUrl: true,
+          bgImage: true,
+          duration: true,
+          addedById: true,
           createdAt: true,
           updatedAt: true
         }
@@ -112,7 +118,7 @@ async function getAdminStats(): Promise<AdminStats> {
       totalMovies,
       totalUsers,
       todayViews,
-      recentMovies: recentMovies.map(movie => ({
+      recentMovies: recentMovies.map((movie: Movie) => ({
         ...movie,
         description: movie.description || '',
         posterUrl: movie.posterUrl || '',
@@ -123,7 +129,9 @@ async function getAdminStats(): Promise<AdminStats> {
         trailerUrl: movie.trailerUrl || undefined,
         rating: movie.rating || undefined,
         year: movie.year || undefined,
-        updatedAt: movie.createdAt
+        bgImage: movie.bgImage || null,
+        duration: movie.duration || null,
+        addedById: movie.addedById || null
       }))
     }
   } catch (error) {
