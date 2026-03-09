@@ -1,0 +1,162 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           Int            @id @default(autoincrement())
+  telegramId   String?        @unique
+  firstName    String?
+  lastName     String?
+  username     String?
+  phoneNumber  String?
+  photoUrl     String?
+  role         Role           @default(USER)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  authSessions AuthSession[]
+  favorites    Favorite[]
+  addedMovies  Movie[]        @relation("UserAddedMovies")
+  watchHistory WatchHistory[]
+}
+
+model Movie {
+  id           Int            @id @default(autoincrement())
+  title        String
+  description  String?
+  posterUrl    String?
+  m3u8Url      String
+  bgImage      String?
+  year         Int?
+  rating       Float?         @default(0.0)
+  duration     Int?
+  trailerUrl   String?
+  actors       String?
+  directors    String?
+  genres       String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  addedById    Int?
+  favorites    Favorite[]
+  addedBy      User?          @relation("UserAddedMovies", fields: [addedById], references: [id])
+  watchHistory WatchHistory[]
+
+  @@index([createdAt])
+  @@index([rating])
+}
+
+model Series {
+  id          Int        @id @default(autoincrement())
+  title       String
+  description String?
+  posterUrl   String?
+  bgImage     String?
+  year        Int?
+  rating      Float?     @default(0.0)
+  actors      String?
+  directors   String?
+  genres      String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  episodes    Episode[]
+  favorites   Favorite[]
+
+  @@index([createdAt])
+  @@index([rating])
+}
+
+model Episode {
+  id            Int            @id @default(autoincrement())
+  seriesId      Int
+  season        Int            @default(1)
+  episodeNumber Int
+  title         String?
+  m3u8Url       String
+  duration      Int?
+  posterUrl     String?
+  createdAt     DateTime       @default(now())
+  series        Series         @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  watchHistory  WatchHistory[]
+
+  @@index([seriesId, season, episodeNumber])
+}
+
+model WatchHistory {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  movieId   Int?
+  episodeId Int?
+  timecode  Int
+  updatedAt DateTime @updatedAt
+  episode   Episode? @relation(fields: [episodeId], references: [id])
+  movie     Movie?   @relation(fields: [movieId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, movieId])
+  @@index([userId, episodeId])
+}
+
+model Favorite {
+  id       Int     @id @default(autoincrement())
+  userId   Int
+  movieId  Int?
+  seriesId Int?
+  movie    Movie?  @relation(fields: [movieId], references: [id])
+  series   Series? @relation(fields: [seriesId], references: [id])
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, movieId])
+  @@unique([userId, seriesId])
+}
+
+model AnalyticsVisitor {
+  visitorId String              @id
+  firstSeen DateTime            @default(now())
+  lastSeen  DateTime            @default(now())
+  pageviews AnalyticsPageview[]
+}
+
+model AnalyticsPageview {
+  id        Int              @id @default(autoincrement())
+  visitorId String
+  path      String
+  ts        DateTime         @default(now())
+  visitor   AnalyticsVisitor @relation(fields: [visitorId], references: [visitorId], onDelete: Cascade)
+
+  @@index([visitorId, ts])
+}
+
+model AuthSession {
+  id          String    @id @default(cuid())
+  token       String    @unique
+  userId      Int?
+  telegramId  String?
+  phoneNumber String?
+  status      String    @default("pending")
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime  @default(dbgenerated("(now() + '00:15:00'::interval)"))
+  confirmedAt DateTime?
+  user        User?     @relation(fields: [userId], references: [id])
+
+  @@index([token])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+model Settings {
+  id                  Int      @id @default(autoincrement())
+  key                 String   @unique
+  value               String
+  updatedAt           DateTime @updatedAt
+  
+  @@index([key])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
