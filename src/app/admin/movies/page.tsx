@@ -26,7 +26,7 @@ export default async function AdminMovies() {
   })
 
   // Форматируем данные для соответствия типу Movie
-  const formattedMovies = movies.map(movie => ({
+  const formattedMovies = movies.map((movie: any) => ({
     ...movie,
     description: movie.description || '',
     posterUrl: movie.posterUrl || '',
