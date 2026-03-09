@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import TelegramAuthButton from '@/components/auth/TelegramAuthButton'
+import TelegramLogin from '@/components/auth/TelegramLogin'
 import { Suspense } from 'react'
 
 export const dynamic = 'force-dynamic'
@@ -56,26 +56,27 @@ function LoginPageContent({ searchParams }: { searchParams: { error?: string } }
           </div>
 
           <div className="flex justify-center">
-            <TelegramAuthButton />
+            <TelegramLogin
+              botUsername={process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME || 'etnomedia_bot'}
+              authUrl={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://etno-media.up.railway.app'}/api/auth/telegram`}
+              onAuthSuccess={(user) => {
+                console.log('Auth successful:', user)
+                // Редирект произойдет автоматически через API
+              }}
+              onAuthError={(error) => {
+                console.error('Auth error:', error)
+              }}
+            />
           </div>
 
-          <div className="mt-4 text-center">
-            <a 
-              href="/manual" 
-              className="text-gray-400 hover:text-white text-sm transition-colors"
-            >
-              Или введите токен вручную →
-            </a>
-          </div>
-
+          
           <div className="mt-6 p-4 bg-gray-800 rounded-lg">
             <h3 className="text-sm font-medium text-white mb-2">Как это работает:</h3>
             <ol className="text-xs text-gray-400 space-y-1">
-              <li>1. Нажмите кнопку "Войти через Telegram"</li>
-              <li>2. Откроется чат с нашим ботом</li>
-              <li>3. Нажмите "Старт" и поделитесь номером телефона</li>
-              <li>4. Бот пришлет вам ссылку для завершения входа</li>
-              <li>5. Готово! Вы вернетесь на сайт авторизованным</li>
+              <li>1. Нажмите кнопку "Log in with Telegram"</li>
+              <li>2. Подтвердите авторизацию в Telegram</li>
+              <li>3. Разрешите доступ к вашему профилю</li>
+              <li>4. Готово! Вы вернетесь на сайт авторизованным</li>
             </ol>
           </div>
 
