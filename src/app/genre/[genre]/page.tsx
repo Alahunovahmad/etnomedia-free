@@ -1,11 +1,11 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import GenreContent from '@/components/genre/GenreContent'
 import { prisma } from '@/lib/prisma'
+import GenreGrid from '@/components/genre/GenreGrid'
 
 interface GenrePageProps {
   params: Promise<{ genre: string }>
-  searchParams: Promise<{ type?: 'movie' | 'series', page?: string }>
+  searchParams: Promise<{ page?: string }>
 }
 
 export async function generateMetadata({ params }: GenrePageProps): Promise<Metadata> {
@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: GenrePageProps): Promise<Meta
 
 export default async function GenrePage({ params, searchParams }: GenrePageProps) {
   const { genre } = await params
-  const { type, page } = await searchParams
+  const { page } = await searchParams
   
   const genreName = decodeURIComponent(genre)
   const currentPage = parseInt(page || '1', 10)
@@ -48,9 +48,7 @@ export default async function GenrePage({ params, searchParams }: GenrePageProps
       { rating: 'desc' },
       { year: 'desc' },
       { title: 'asc' }
-    ],
-    skip: type === 'series' ? 0 : (currentPage - 1) * itemsPerPage,
-    take: type === 'series' ? 0 : itemsPerPage
+    ]
   })
 
   // Поиск сериалов по жанру
@@ -74,51 +72,39 @@ export default async function GenrePage({ params, searchParams }: GenrePageProps
       { rating: 'desc' },
       { year: 'desc' },
       { title: 'asc' }
-    ],
-    skip: type === 'movie' ? 0 : (currentPage - 1) * itemsPerPage,
-    take: type === 'movie' ? 0 : itemsPerPage
+    ]
   })
 
-  // Получаем общее количество для пагинации
-  const [totalMovies, totalSeries] = await Promise.all([
-    prisma.movie.count({
-      where: {
-        genres: {
-          contains: genreName,
-          mode: 'insensitive'
-        }
-      }
-    }),
-    prisma.series.count({
-      where: {
-        genres: {
-          contains: genreName,
-          mode: 'insensitive'
-        }
-      }
-    })
-  ])
+  // Объединяем фильмы и сериалы в один массив
+  const allItems = [
+    ...movies.map(movie => ({ ...movie, type: 'movie' as const })),
+    ...series.map(serie => ({ ...serie, type: 'series' as const }))
+  ]
+
+  // Сортируем по рейтингу
+  allItems.sort((a, b) => (b.rating || 0) - (a.rating || 0))
+
+  // Пагинация
+  const totalItems = allItems.length
+  const totalPages = Math.ceil(totalItems / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedItems = allItems.slice(startIndex, endIndex)
 
   // Проверяем, что такой жанр существует
-  if (totalMovies === 0 && totalSeries === 0) {
+  if (totalItems === 0) {
     notFound()
   }
-
-  const totalItems = type === 'movie' ? totalMovies : type === 'series' ? totalSeries : totalMovies + totalSeries
-  const totalPages = Math.ceil(totalItems / itemsPerPage)
 
   return (
     <div className="min-h-screen bg-black">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <GenreContent 
+        <GenreGrid 
           genreName={genreName}
-          movies={movies}
-          series={series}
-          totalMovies={totalMovies}
-          totalSeries={totalSeries}
+          items={paginatedItems}
+          totalItems={totalItems}
           currentPage={currentPage}
           totalPages={totalPages}
-          currentType={type}
         />
       </div>
     </div>

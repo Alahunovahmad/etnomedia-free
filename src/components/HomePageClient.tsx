@@ -5,7 +5,7 @@ import { useWatchProgress } from '@/components/shared/WatchProgressProvider'
 import { Movie, Series } from '@/types'
 import MovieCard from '@/components/shared/MovieCard'
 import SeriesCard from '@/components/shared/SeriesCard'
-import GenresSection from '@/components/shared/GenresSection'
+import GenreChips from '@/components/shared/GenreChips'
 
 interface HomePageClientProps {
   movies: Movie[]
@@ -50,6 +50,9 @@ export default function HomePageClient({ movies, series }: HomePageClientProps) 
         </div>
       </section>
 
+      {/* Genre Chips */}
+      <GenreChips />
+
       {/* Movies Grid */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <h2 className="text-3xl font-bold text-white mb-8">Популярные фильмы</h2>
@@ -64,9 +67,6 @@ export default function HomePageClient({ movies, series }: HomePageClientProps) 
           ))}
         </div>
       </section>
-
-      {/* Genres Section */}
-      <GenresSection />
 
       {/* Series Grid */}
       {series.length > 0 && (
