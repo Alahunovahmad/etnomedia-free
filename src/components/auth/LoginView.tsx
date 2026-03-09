@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { RefreshCw, MessageCircle } from 'lucide-react'
+import { RefreshCw, MessageCircle, X } from 'lucide-react'
 
 export default function LoginView() {
   const [error, setError] = useState<string>('')
@@ -109,6 +109,35 @@ export default function LoginView() {
     }
   }
 
+  const handleStopWaiting = async () => {
+    if (!nonce || !pollingRef.current) return
+    
+    // Останавливаем polling
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current)
+      pollingRef.current = null
+    }
+    
+    // Сжигаем nonce на сервере
+    try {
+      await fetch('/api/auth/cancel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ nonce })
+      })
+    } catch (error) {
+      console.error('Cancel auth error:', error)
+    }
+    
+    // Очищаем локальное состояние
+    localStorage.removeItem('auth_nonce')
+    setNonce('')
+    setIsWaiting(false)
+    setError('Процесс авторизации отменен')
+  }
+
   // Проверяем, есть ли nonce в localStorage (возвращаемся из Telegram)
   useEffect(() => {
     const storedNonce = localStorage.getItem('auth_nonce')
@@ -198,16 +227,26 @@ export default function LoginView() {
             </div>
           )}
 
-          {/* Кнопка смены аккаунта */}
+          {/* Кнопка смены аккаунта / остановки */}
           <div className="mt-8 pt-6 border-t border-gray-800">
-            <button
-              onClick={handleResetSession}
-              disabled={isLoading || isWaiting}
-              className="w-full flex items-center justify-center gap-2 text-zinc-500 hover:text-zinc-400 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <RefreshCw className="w-3 h-3" />
-              Войти с другого аккаунта
-            </button>
+            {isWaiting ? (
+              <button
+                onClick={handleStopWaiting}
+                className="w-full flex items-center justify-center gap-2 text-red-500 hover:text-red-400 transition-colors text-xs"
+              >
+                <X className="w-3 h-3" />
+                Остановить
+              </button>
+            ) : (
+              <button
+                onClick={handleResetSession}
+                disabled={isLoading}
+                className="w-full flex items-center justify-center gap-2 text-zinc-500 hover:text-zinc-400 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className="w-3 h-3" />
+                Войти с другого аккаунта
+              </button>
+            )}
           </div>
 
           <div className="mt-6 p-4 bg-gray-800 rounded-lg">
