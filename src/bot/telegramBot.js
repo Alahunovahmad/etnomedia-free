@@ -1,6 +1,7 @@
 const TelegramBot = require('node-telegram-bot-api')
 const axios = require('axios')
 
+
 class ETNOMediaBot {
   constructor(token) {
     // Улучшенные настройки polling с retry
@@ -13,7 +14,7 @@ class ETNOMediaBot {
         }
       }
     })
-    this.apiUrl = process.env.API_URL || 'http://localhost:3000/api/bot/auth'
+    this.apiUrl = process.env.API_URL || 'https://etno-media.up.railway.app/api/bot/auth'
     this.botToken = token
     this.userTokens = {}
     this.retryCount = 0
@@ -135,16 +136,27 @@ class ETNOMediaBot {
           const sessionToken = response.session?.token || token
           
           // Формируем правильный URL
-          const baseUrl = process.env.PUBLIC_URL || 'http://localhost:3000'
+          const baseUrl = process.env.PUBLIC_URL || 'https://etno-media.up.railway.app'
           const successUrl = `${baseUrl}/success?token=${sessionToken}`
           const magicLink = `${baseUrl}/api/auth/confirm?token=${sessionToken}`
           
           // Отправляем Magic Link пользователю
           await this.bot.sendMessage(chatId, 
               '✅ *Авторизация успешная!*\n\n' +
-              'Нажмите на ссылку ниже, чтобы вернуться на сайт:\n\n' +
-              magicLink, // Отправляем как есть, без <a> или []
-              { parse_mode: 'Markdown' }
+              'Нажмите на кнопку ниже, чтобы вернуться на сайт:', 
+              { 
+                  parse_mode: 'Markdown',
+                  reply_markup: {
+                      inline_keyboard: [
+                          [
+                              {
+                                  text: '🔗 Вернуться на сайт', 
+                                  url: magicLink             
+                              }
+                          ]
+                      ]
+                  }
+              }
           );
 
           // Очищаем токен
@@ -217,7 +229,13 @@ class ETNOMediaBot {
         const status = error.response?.status
         const errorData = error.response?.data || {}
         
-        console.error(`API request attempt ${attempt} failed:`, errorData)
+        console.error(`API request attempt ${attempt} failed:`, {
+          status: status || 'NO_RESPONSE',
+          url: this.apiUrl,
+          message: error.message,
+          code: error.code,
+          data: errorData
+        })
         
         // Если ошибка 403 (регистрация отключена), не повторяем попытки и возвращаем успешный ответ с ошибкой
         if (status === 403) {

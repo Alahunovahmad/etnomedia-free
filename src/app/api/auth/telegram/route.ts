@@ -51,6 +51,13 @@ async function generateJWT(userId: number, role: string): Promise<string> {
 }
 
 export async function GET(request: NextRequest) {
+  // Определяем публичный base URL (на Railway request.url = localhost:8080)
+  const forwardedHost = request.headers.get('x-forwarded-host')
+  const forwardedProto = request.headers.get('x-forwarded-proto') || 'https'
+  const baseUrl = forwardedHost 
+    ? `${forwardedProto}://${forwardedHost}`
+    : process.env.NEXT_PUBLIC_BASE_URL || request.url
+
   try {
     const { searchParams } = new URL(request.url)
     const query = Object.fromEntries(searchParams.entries())
@@ -58,7 +65,7 @@ export async function GET(request: NextRequest) {
     // Валидация подписи Telegram
     if (!validateTelegramAuth(query)) {
       console.error('Invalid Telegram auth signature')
-      return NextResponse.redirect(new URL('/login?error=invalid', request.url))
+      return NextResponse.redirect(new URL('/login?error=invalid', baseUrl))
     }
 
     const telegramId = query.id
@@ -76,7 +83,7 @@ export async function GET(request: NextRequest) {
       // Проверяем, разрешена ли регистрация
       const registrationEnabled = await isRegistrationEnabled()
       if (!registrationEnabled) {
-        return NextResponse.redirect(new URL('/login?error=registration_disabled', request.url))
+        return NextResponse.redirect(new URL('/login?error=registration_disabled', baseUrl))
       }
 
       user = await prisma.user.create({
@@ -116,10 +123,10 @@ export async function GET(request: NextRequest) {
     })
 
     // Редирект на главную
-    return NextResponse.redirect(new URL('/', request.url))
+    return NextResponse.redirect(new URL('/', baseUrl))
 
   } catch (error) {
     console.error('Telegram auth error:', error)
-    return NextResponse.redirect(new URL('/login?error=server', request.url))
+    return NextResponse.redirect(new URL('/login?error=server', baseUrl))
   }
 }
