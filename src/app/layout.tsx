@@ -8,6 +8,8 @@ import YandexMetrika from '@/components/shared/YandexMetrika'
 import { isMaintenanceMode } from '@/lib/settings'
 import { getUser } from '@/lib/auth'
 
+export const dynamic = 'force-dynamic'
+
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {

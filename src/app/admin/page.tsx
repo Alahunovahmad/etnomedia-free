@@ -9,6 +9,8 @@ import {
   TrendingUp 
 } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminDashboard() {
   // Получаем статистику
   const stats: AdminStats = await getAdminStats()

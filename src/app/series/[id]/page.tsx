@@ -5,6 +5,8 @@ import { getUser } from '@/lib/auth'
 import { isMaintenanceMode } from '@/lib/settings'
 import MaintenanceMode from '@/components/MaintenanceMode'
 
+export const dynamic = 'force-dynamic'
+
 interface SeriesPageProps {
   params: Promise<{
     id: string

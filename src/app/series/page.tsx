@@ -4,6 +4,8 @@ import { isMaintenanceMode } from '@/lib/settings'
 import { getUser } from '@/lib/auth'
 import MaintenanceMode from '@/components/MaintenanceMode'
 
+export const dynamic = 'force-dynamic'
+
 export default async function SeriesPage() {
   // Проверка режима обслуживания
   const maintenanceMode = await isMaintenanceMode()

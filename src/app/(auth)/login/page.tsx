@@ -1,5 +1,8 @@
 import { Metadata } from 'next'
 import TelegramAuthButton from '@/components/auth/TelegramAuthButton'
+import { Suspense } from 'react'
+
+export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   title: 'Вход - ETNOMEDIA',
@@ -12,9 +15,7 @@ interface LoginPageProps {
   }>
 }
 
-export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const { error } = await searchParams
-  
+function LoginPageContent({ searchParams }: { searchParams: { error?: string } }) {
   return (
     <div className="min-h-screen bg-black flex items-center justify-center px-4">
       <div className="max-w-md w-full space-y-8">
@@ -28,13 +29,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         </div>
 
         {/* Error Messages */}
-        {error && (
+        {searchParams.error && (
           <div className="bg-red-500/10 border border-red-500 rounded-lg p-4">
             <p className="text-red-500 text-sm text-center">
-              {error === 'registration_disabled' && 'Регистрация новых пользователей временно отключена'}
-              {error === 'invalid' && 'Ошибка авторизации. Попробуйте снова'}
-              {error === 'server' && 'Ошибка сервера. Попробуйте позже'}
-              {!['registration_disabled', 'invalid', 'server'].includes(error) && 'Произошла ошибка'}
+              {searchParams.error === 'registration_disabled' && 'Регистрация новых пользователей временно отключена'}
+              {searchParams.error === 'invalid' && 'Ошибка авторизации. Попробуйте снова'}
+              {searchParams.error === 'server' && 'Ошибка сервера. Попробуйте позже'}
+              {!['registration_disabled', 'invalid', 'server'].includes(searchParams.error) && 'Произошла ошибка'}
             </p>
           </div>
         )}
@@ -98,5 +99,15 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         </div>
       </div>
     </div>
+  )
+}
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const { error } = await searchParams
+  
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center"><div className="text-white">Загрузка...</div></div>}>
+      <LoginPageContent searchParams={{ error }} />
+    </Suspense>
   )
 }

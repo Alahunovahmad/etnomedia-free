@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { Settings, Database, Bot, Shield, Save, RefreshCw } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 interface SystemSettings {
   siteName: string
   siteDescription: string

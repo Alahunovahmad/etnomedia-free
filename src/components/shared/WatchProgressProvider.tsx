@@ -1,7 +1,6 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
-import { getUser } from '@/lib/auth'
 
 interface WatchProgress {
   [movieId: number]: number // процент просмотра (0-100)
@@ -38,8 +37,11 @@ export function WatchProgressProvider({ children }: { children: React.ReactNode 
   // Загрузка прогресса для списка фильмов
   const loadProgress = async (movieIds: number[]) => {
     try {
-      const user = await getUser()
-      if (!user) return
+      // Проверяем авторизацию через API
+      const authResponse = await fetch('/api/auth/me')
+      if (!authResponse.ok) {
+        return // Пользователь не авторизован
+      }
 
       const progressPromises = movieIds.map(async (movieId) => {
         try {
