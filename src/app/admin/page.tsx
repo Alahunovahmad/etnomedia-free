@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { AdminStats } from '@/types/admin'
 import { Movie } from '@/types'
 import StatsCard from '@/components/admin/StatsCard'
-import RecentMoviesTable from '@/components/admin/RecentMoviesTable'
+import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard'
 import { 
   Film, 
   Users, 
@@ -57,11 +57,8 @@ export default async function AdminDashboard() {
         />
       </div>
 
-      {/* Recent Movies */}
-      <div className="bg-zinc-900 rounded-lg p-6">
-        <h2 className="text-xl font-semibold text-white mb-4">Последние добавленные фильмы</h2>
-        <RecentMoviesTable movies={stats.recentMovies} />
-      </div>
+      {/* Analytics */}
+      <AnalyticsDashboard />
     </div>
   )
 }
@@ -71,8 +68,7 @@ async function getAdminStats(): Promise<AdminStats> {
     const [
       totalMovies,
       totalUsers,
-      todayViews,
-      recentMovies
+      todayViews
     ] = await Promise.all([
       // Всего фильмов
       prisma.movie.count(),
@@ -87,30 +83,6 @@ async function getAdminStats(): Promise<AdminStats> {
             gte: new Date(new Date().setHours(0, 0, 0, 0))
           }
         }
-      }),
-      
-      // Последние фильмы
-      prisma.movie.findMany({
-        take: 10,
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          posterUrl: true,
-          m3u8Url: true,
-          rating: true,
-          year: true,
-          genres: true,
-          actors: true,
-          directors: true,
-          trailerUrl: true,
-          bgImage: true,
-          duration: true,
-          addedById: true,
-          createdAt: true,
-          updatedAt: true
-        }
       })
     ])
 
@@ -118,21 +90,7 @@ async function getAdminStats(): Promise<AdminStats> {
       totalMovies,
       totalUsers,
       todayViews,
-      recentMovies: recentMovies.map((movie: Movie) => ({
-        ...movie,
-        description: movie.description || '',
-        posterUrl: movie.posterUrl || '',
-        m3u8Url: movie.m3u8Url || '',
-        genres: movie.genres || '',
-        actors: movie.actors || '',
-        directors: movie.directors || '',
-        trailerUrl: movie.trailerUrl || undefined,
-        rating: movie.rating || undefined,
-        year: movie.year || undefined,
-        bgImage: movie.bgImage || null,
-        duration: movie.duration || null,
-        addedById: movie.addedById || null
-      }))
+      recentMovies: [] // Пустой массив, так как не используется
     }
   } catch (error) {
     console.error('Failed to fetch admin stats:', error)

@@ -19,7 +19,10 @@ export default function TelegramLogin({
   const scriptLoaded = useRef(false)
 
   useEffect(() => {
-    if (scriptLoaded.current) return
+    // Очистка контейнера перед инициализацией
+    if (containerRef.current) {
+      containerRef.current.innerHTML = ''
+    }
 
     const loadTelegramScript = async () => {
       try {
@@ -30,7 +33,7 @@ export default function TelegramLogin({
         script.setAttribute('data-telegram-login', botUsername)
         script.setAttribute('data-auth-url', authUrl)
         script.setAttribute('data-request-access', 'write')
-        script.setAttribute('data-size', 'large')
+        script.setAttribute('data-size', 'large') // Обязательно для мобильных
         script.setAttribute('data-radius', '8')
         script.setAttribute('data-userpic', 'true')
 
@@ -63,6 +66,9 @@ export default function TelegramLogin({
 
     return () => {
       // Очистка при размонтировании
+      if (containerRef.current) {
+        containerRef.current.innerHTML = ''
+      }
       if ((window as any).telegramLoginCallback) {
         delete (window as any).telegramLoginCallback
       }
@@ -74,7 +80,7 @@ export default function TelegramLogin({
       <div 
         ref={containerRef}
         id="telegram-login-widget"
-        className="telegram-login-widget"
+        className="telegram-login-widget min-h-[60px]" // Избегаем прыжков верстки
       />
     </div>
   )

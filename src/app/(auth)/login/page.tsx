@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import TelegramLogin from '@/components/auth/TelegramLogin'
+import { RefreshCw } from 'lucide-react'
 
 export default function LoginPage() {
   const [error, setError] = useState<string>('')
+  const [isResetting, setIsResetting] = useState(false)
   const searchParams = useSearchParams()
 
   useEffect(() => {
@@ -23,6 +25,22 @@ export default function LoginPage() {
   const handleAuthError = (error: string) => {
     console.error('Auth error:', error)
     setError('auth_error')
+  }
+
+  const handleResetSession = async () => {
+    if (isResetting) return
+    
+    setIsResetting(true)
+    try {
+      // Вызываем API logout для удаления куки
+      await fetch('/api/auth/logout', { method: 'POST' })
+      // Перезагружаем страницу для переинициализации виджета
+      window.location.reload()
+    } catch (error) {
+      console.error('Reset session error:', error)
+      // В случае ошибки все равно перезагружаем
+      window.location.reload()
+    }
   }
 
   return (
@@ -50,7 +68,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        <div className="bg-gray-900 rounded-lg p-8 border border-gray-800">
+        <div className="bg-gray-900 rounded-3xl p-8 border border-gray-800">
           <div className="text-center mb-6">
             <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -67,11 +85,23 @@ export default function LoginPage() {
 
           <div className="flex justify-center">
             <TelegramLogin
-              botUsername={process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME || 'etnomedia_bot'}
+              botUsername={process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME || 'etnomedia_free_bot'}
               authUrl={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://etno-media.up.railway.app'}/api/auth/telegram`}
               onAuthSuccess={handleAuthSuccess}
               onAuthError={handleAuthError}
             />
+          </div>
+
+          {/* Кнопка смены аккаунта */}
+          <div className="mt-8 pt-6 border-t border-gray-800">
+            <button
+              onClick={handleResetSession}
+              disabled={isResetting}
+              className="w-full flex items-center justify-center gap-2 text-zinc-500 hover:text-zinc-400 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RefreshCw className={`w-3 h-3 ${isResetting ? 'animate-spin' : ''}`} />
+              {isResetting ? 'Сброс сессии...' : 'Войти с другого аккаунта'}
+            </button>
           </div>
 
           <div className="mt-6 p-4 bg-gray-800 rounded-lg">
