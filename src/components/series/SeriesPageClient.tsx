@@ -108,7 +108,7 @@ export default function SeriesPageClient({
         {/* Season Tabs */}
         <div className="mb-8">
           <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-            {seasons.map(seasonNum => {
+            {seasons.map((seasonNum: string) => {
               const isActive = parseInt(seasonNum) === currentSeason
               return (
                 <button
@@ -131,7 +131,7 @@ export default function SeriesPageClient({
 
           {/* Episodes Grid for Active Season */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            {episodesBySeason[currentSeason]?.map(ep => (
+            {episodesBySeason[currentSeason]?.map((ep: Episode) => (
               <button
                 key={ep.id}
                 onClick={() => handleEpisodeChange(ep.season, ep.episodeNumber)}
@@ -202,7 +202,7 @@ export default function SeriesPageClient({
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Жанры</h3>
                     <div className="flex flex-wrap gap-2">
-                      {series.genres.split(',').map((genre, index) => (
+                      {series.genres.split(',').map((genre: string, index: number) => (
                         <span 
                           key={index}
                           className="px-3 py-1 bg-red-600 rounded-full text-sm"

@@ -30,7 +30,7 @@ export default function SeasonTabs({
   return (
     <div className="mb-8">
       <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-        {seasons.map(seasonNum => {
+        {seasons.map((seasonNum: string) => {
           const isActive = parseInt(seasonNum) === currentSeason
           return (
             <button
@@ -53,7 +53,7 @@ export default function SeasonTabs({
 
       {/* Episodes Grid for Active Season */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-        {episodesBySeason[currentSeason]?.map(ep => (
+        {episodesBySeason[currentSeason]?.map((ep: Episode) => (
           <a
             key={ep.id}
             href={`/series/${seriesId}?season=${ep.season}&episode=${ep.episodeNumber}`}

@@ -2,13 +2,13 @@
 
 import { useEffect } from 'react'
 import { useWatchProgress } from '@/components/shared/WatchProgressProvider'
-import { Movie } from '@/types'
+import { Movie, Series } from '@/types'
 import MovieCard from '@/components/shared/MovieCard'
 import SeriesCard from '@/components/shared/SeriesCard'
 
 interface HomePageClientProps {
   movies: Movie[]
-  series: any[]
+  series: Series[]
 }
 
 export default function HomePageClient({ movies, series }: HomePageClientProps) {
@@ -16,7 +16,7 @@ export default function HomePageClient({ movies, series }: HomePageClientProps) 
 
   useEffect(() => {
     // Загружаем прогресс для всех фильмов
-    const movieIds = movies.map(movie => movie.id)
+    const movieIds = movies.map((movie: Movie) => movie.id)
     loadProgress(movieIds)
   }, [movies, loadProgress])
 
@@ -54,7 +54,7 @@ export default function HomePageClient({ movies, series }: HomePageClientProps) 
         <h2 className="text-3xl font-bold text-white mb-8">Популярные фильмы</h2>
         
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {movies.map((movie) => (
+          {movies.map((movie: Movie) => (
             <MovieCard 
               key={movie.id} 
               movie={movie} 
@@ -70,7 +70,7 @@ export default function HomePageClient({ movies, series }: HomePageClientProps) 
           <h2 className="text-3xl font-bold text-white mb-8">Популярные сериалы</h2>
           
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {series.map((item) => (
+            {series.map((item: Series) => (
               <SeriesCard key={item.id} series={item} />
             ))}
           </div>

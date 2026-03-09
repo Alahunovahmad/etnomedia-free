@@ -83,7 +83,7 @@ export default function SeriesTable({ series }: SeriesTableProps) {
             </tr>
           </thead>
           <tbody>
-            {series.map((seriesItem) => (
+            {series.map((seriesItem: Series) => (
               <tr key={seriesItem.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
                 <td className="py-4">
                   <div className="flex items-start gap-3">
@@ -129,7 +129,7 @@ export default function SeriesTable({ series }: SeriesTableProps) {
                   </div>
                   {seriesItem.episodes.length > 0 && (
                     <div className="text-zinc-500 text-xs">
-                      {Math.max(...seriesItem.episodes.map(e => e.season))} сезон(ов)
+                      {Math.max(...seriesItem.episodes.map((e: any) => e.season))} сезон(ов)
                     </div>
                   )}
                 </td>

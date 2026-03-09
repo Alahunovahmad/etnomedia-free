@@ -70,7 +70,7 @@ export default function EpisodesTable({ episodes, seriesId }: EpisodesTableProps
   return (
     <>
       <div className="space-y-6">
-        {Object.entries(episodesBySeason).map(([season, seasonEpisodes]) => (
+        {Object.entries(episodesBySeason).map(([season, seasonEpisodes]: [string, Episode[]]) => (
           <div key={season}>
             <h3 className="text-lg font-semibold text-white mb-3">
               Сезон {season} ({seasonEpisodes.length} эпизодов)
@@ -88,7 +88,7 @@ export default function EpisodesTable({ episodes, seriesId }: EpisodesTableProps
                   </tr>
                 </thead>
                 <tbody>
-                  {seasonEpisodes.map((episode) => (
+                  {seasonEpisodes.map((episode: Episode) => (
                     <tr key={episode.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
                       <td className="py-4">
                         <div className="flex items-center gap-3">

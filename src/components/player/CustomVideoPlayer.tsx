@@ -120,7 +120,7 @@ export default function CustomVideoPlayer({
       
       hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
         setIsLoading(false)
-        setQualities(data.levels.map(level => ({
+        setQualities(data.levels.map((level: any) => ({
           height: level.height,
           bitrate: level.bitrate
         })))
@@ -557,7 +557,7 @@ export default function CustomVideoPlayer({
                     <div>
                       <div className="text-sm font-semibold mb-2">Скорость</div>
                       <div className="space-y-1">
-                        {[0.5, 0.75, 1, 1.25, 1.5, 2].map(rate => (
+                        {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate: number) => (
                           <button
                             key={rate}
                             onClick={() => changePlaybackRate(rate)}
@@ -584,7 +584,7 @@ export default function CustomVideoPlayer({
                           >
                             Авто
                           </button>
-                          {qualities.map((quality, index) => (
+                          {qualities.map((quality: any, index: number) => (
                             <button
                               key={index}
                               onClick={() => changeQuality(index)}

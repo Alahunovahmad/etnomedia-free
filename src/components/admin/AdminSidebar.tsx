@@ -70,7 +70,7 @@ export default function AdminSidebar() {
       {/* Navigation */}
       <nav className="p-4">
         <ul className="space-y-2">
-          {sidebarItems.map((item) => {
+          {sidebarItems.map((item: AdminSidebarItem) => {
             const isActive = pathname === item.href
             const Icon = iconMap[item.icon as keyof typeof iconMap]
 

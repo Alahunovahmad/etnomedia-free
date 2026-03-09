@@ -43,7 +43,7 @@ export function WatchProgressProvider({ children }: { children: React.ReactNode 
         return // Пользователь не авторизован
       }
 
-      const progressPromises = movieIds.map(async (movieId) => {
+      const progressPromises = movieIds.map(async (movieId: number) => {
         try {
           const response = await fetch(`/api/history?movieId=${movieId}`)
           if (response.ok) {

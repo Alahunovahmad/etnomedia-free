@@ -63,7 +63,7 @@ export default function MoviesTable({ movies }: MoviesTableProps) {
             </tr>
           </thead>
           <tbody>
-            {movies.map((movie) => (
+            {movies.map((movie: Movie) => (
               <tr key={movie.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
                 <td className="py-4">
                   <div className="flex items-start gap-3">

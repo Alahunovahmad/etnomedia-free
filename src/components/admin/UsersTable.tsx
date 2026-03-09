@@ -43,7 +43,7 @@ export default function UsersTable({ users }: UsersTableProps) {
           </tr>
         </thead>
         <tbody>
-          {users.map((user) => (
+          {users.map((user: User) => (
             <tr key={user.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
               <td className="py-4">
                 <div className="flex items-center gap-3">

@@ -98,7 +98,7 @@ export default function EditModal({
           )}
 
           <div className="space-y-4">
-            {fields.map((field) => (
+            {fields.map((field: any) => (
               <div key={field.name}>
                 <label className="block text-sm font-medium text-zinc-300 mb-2">
                   {field.label}
