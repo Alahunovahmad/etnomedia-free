@@ -5,6 +5,7 @@ import { useWatchProgress } from '@/components/shared/WatchProgressProvider'
 import { Movie, Series } from '@/types'
 import MovieCard from '@/components/shared/MovieCard'
 import SeriesCard from '@/components/shared/SeriesCard'
+import GenresSection from '@/components/shared/GenresSection'
 
 interface HomePageClientProps {
   movies: Movie[]
@@ -63,6 +64,9 @@ export default function HomePageClient({ movies, series }: HomePageClientProps) 
           ))}
         </div>
       </section>
+
+      {/* Genres Section */}
+      <GenresSection />
 
       {/* Series Grid */}
       {series.length > 0 && (
