@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { Users, Shield, Calendar, Mail, Crown } from 'lucide-react'
 import UsersTable from '@/components/admin/UsersTable'
+import { UserData, User } from '@/types'
 
 export default async function AdminUsers() {
   // Получаем всех пользователей с статистикой
@@ -18,12 +19,17 @@ export default async function AdminUsers() {
   })
 
   // Форматируем данные для соответствия интерфейсу User
-  const users = usersData.map(user => ({
+  const users: User[] = usersData.map((user: UserData) => ({
     id: user.id,
     role: user.role,
     createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
     telegramId: user.telegramId,
     phoneNumber: user.phoneNumber,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    username: user.username,
+    photoUrl: user.photoUrl,
     _count: user._count
   }))
 
