@@ -4,6 +4,7 @@ import { getServerSession } from '@/lib/server-session'
 import { getUser } from '@/lib/auth'
 import { isMaintenanceMode } from '@/lib/settings'
 import MaintenanceMode from '@/components/MaintenanceMode'
+import { Movie } from '@/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,7 +29,7 @@ export default async function MoviePage({ params }: MoviePageProps) {
   }
 
   const resolvedParams = await params
-  let movie = null
+  let movie: Movie | null = null
   let watchHistory = null
   
   try {
@@ -71,7 +72,10 @@ export default async function MoviePage({ params }: MoviePageProps) {
         trailerUrl: null,
         actors: "Тимоти Шаламе, Зендая, Рейнальдо Маркус, Остин Батлер, Флоренс Пью",
         directors: "Дени Вильнёв",
-        genres: "Научная фантастика, Приключения"
+        genres: "Научная фантастика, Приключения",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        addedById: null
       },
       2: {
         id: 2,
@@ -86,7 +90,10 @@ export default async function MoviePage({ params }: MoviePageProps) {
         trailerUrl: null,
         actors: "Киллиан Мёрфи, Эмили Блант, Роберт Дауни-младший, Мэтт Дэймон",
         directors: "Кристофер Нолан",
-        genres: "Биография, Драма, История"
+        genres: "Биография, Драма, История",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        addedById: null
       },
       3: {
         id: 3,
@@ -101,7 +108,10 @@ export default async function MoviePage({ params }: MoviePageProps) {
         trailerUrl: "https://etnomedia-cache.cdnvideo.ru/etnomedia/videos/2025/21344/trailers/6433092306.mp4",
         actors: "Болот Тентимышов, Эмил Токтошев, Баяман Сатыбалды уулу, Жазгүл Салидинова",
         directors: "Нурланбек Камчыбеков",
-        genres: "Комедия"
+        genres: "Комедия",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        addedById: null
       }
     }
     
@@ -180,7 +190,7 @@ export default async function MoviePage({ params }: MoviePageProps) {
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Жанры</h3>
                     <div className="flex flex-wrap gap-2">
-                      {movie.genres.split(',').map((genre, index) => (
+                      {movie.genres.split(',').map((genre: string, index: number) => (
                         <span 
                           key={index}
                           className="px-3 py-1 bg-red-600 rounded-full text-sm"
