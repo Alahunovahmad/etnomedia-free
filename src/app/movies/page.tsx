@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { isMaintenanceMode } from '@/lib/settings'
 import { getUser } from '@/lib/auth'
 import MaintenanceMode from '@/components/MaintenanceMode'
+import { Movie } from '@/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,7 +31,7 @@ export default async function MoviesPage() {
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {movies.map((movie) => (
+            {movies.map((movie: Movie) => (
               <MovieCard key={movie.id} movie={movie} />
             ))}
           </div>
