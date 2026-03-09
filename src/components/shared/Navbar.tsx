@@ -1,8 +1,9 @@
 'use client'
 
-import { Search, User, LogOut } from 'lucide-react'
+import { User, LogOut } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import SearchComponent from './SearchComponent'
 
 interface UserProfile {
   firstName: string | null
@@ -73,9 +74,7 @@ export default function Navbar() {
 
           {/* Right side */}
           <div className="flex items-center space-x-4">
-            <button className="text-gray-300 hover:text-white transition-colors">
-              <Search className="h-5 w-5" />
-            </button>
+            <SearchComponent />
             
             {loading ? (
               <div className="w-20 h-8 bg-gray-700 rounded-md animate-pulse"></div>
@@ -121,6 +120,10 @@ export default function Navbar() {
       {/* Mobile menu */}
       <div className="md:hidden">
         <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+          <div className="flex justify-between items-center px-3 py-2">
+            <span className="text-white font-medium">Меню</span>
+            <SearchComponent />
+          </div>
           <Link href="/" className="text-white hover:text-red-600 block px-3 py-2 rounded-md text-base font-medium">
             Главная
           </Link>
