@@ -22,6 +22,17 @@ model User {
   favorites    Favorite[]
   addedMovies  Movie[]        @relation("UserAddedMovies")
   watchHistory WatchHistory[]
+  pendingAuths PendingAuth[]
+}
+
+model PendingAuth {
+  id        String   @id @default(uuid())
+  nonce     String   @unique
+  status    String   @default("PENDING") // PENDING, COMPLETED, EXPIRED
+  userId    Int?
+  createdAt DateTime @default(now())
+  
+  user      User?    @relation(fields: [userId], references: [id])
 }
 
 model Movie {
