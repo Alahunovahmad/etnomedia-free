@@ -5,6 +5,7 @@ import Navbar from '@/components/shared/Navbar'
 import Footer from '@/components/shared/Footer'
 import ContinueWatchingProvider from '@/components/player/ContinueWatchingProvider'
 import YandexMetrika from '@/components/shared/YandexMetrika'
+import TelegramBypass from '@/components/shared/TelegramBypass'
 import { isMaintenanceMode } from '@/lib/settings'
 import { getUser } from '@/lib/auth'
 
@@ -40,6 +41,7 @@ export default async function RootLayout({
         </ContinueWatchingProvider>
         {showNavigation && <Footer />}
         <YandexMetrika />
+        <TelegramBypass />
       </body>
     </html>
   )
