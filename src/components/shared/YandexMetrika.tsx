@@ -7,26 +7,22 @@ import { useEffect } from 'react'
 // Добавляем типы для Яндекс.Метрики
 declare global {
   interface Window {
-    ym: (id: string, method: string, ...params: any[]) => void
+    ym: (id: number, method: string, ...params: any[]) => void
   }
 }
 
 export default function YandexMetrika() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const metrikaId = process.env.NEXT_PUBLIC_YANDEX_METRIKA_ID
+  const metrikaId = process.env.NEXT_PUBLIC_YANDEX_METRIKA_ID || '107220875'
 
   useEffect(() => {
     if (metrikaId && typeof window !== 'undefined' && window.ym) {
       // Отправляем hit при изменении маршрута
       const url = pathname + (searchParams?.toString() ? `?${searchParams.toString()}` : '')
-      window.ym(metrikaId, 'hit', url)
+      window.ym(parseInt(metrikaId), 'hit', url)
     }
   }, [pathname, searchParams, metrikaId])
-
-  if (!metrikaId) {
-    return null
-  }
 
   return (
     <>
@@ -36,17 +32,10 @@ export default function YandexMetrika() {
             m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
             m[i].l=1*new Date();
             for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
-            k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
-          (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
+            k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+          })(window, document,'script','https://mc.yandex.ru/metrika/tag.js', 'ym');
 
-          ym(${metrikaId}, "init", {
-            defer: true,
-            clickmap:true,
-            trackLinks:true,
-            accurateTrackBounce:true,
-            webvisor:true,
-            ecommerce:"dataLayer"
-          });
+          ym(${metrikaId}, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
         `}
       </Script>
       <noscript>
