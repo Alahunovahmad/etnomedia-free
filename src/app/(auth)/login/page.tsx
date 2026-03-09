@@ -1,21 +1,30 @@
-import { Metadata } from 'next'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import TelegramLogin from '@/components/auth/TelegramLogin'
-import { Suspense } from 'react'
 
-export const dynamic = 'force-dynamic'
+export default function LoginPage() {
+  const [error, setError] = useState<string>('')
+  const searchParams = useSearchParams()
 
-export const metadata: Metadata = {
-  title: 'Вход - ETNOMEDIA',
-  description: 'Войдите в свой аккаунт через Telegram',
-}
+  useEffect(() => {
+    const errorParam = searchParams.get('error')
+    if (errorParam) {
+      setError(errorParam)
+    }
+  }, [searchParams])
 
-interface LoginPageProps {
-  searchParams: Promise<{
-    error?: string
-  }>
-}
+  const handleAuthSuccess = (user: any) => {
+    console.log('Auth successful:', user)
+    // Редирект произойдет автоматически через API
+  }
 
-function LoginPageContent({ searchParams }: { searchParams: { error?: string } }) {
+  const handleAuthError = (error: string) => {
+    console.error('Auth error:', error)
+    setError('auth_error')
+  }
+
   return (
     <div className="min-h-screen bg-black flex items-center justify-center px-4">
       <div className="max-w-md w-full space-y-8">
@@ -29,13 +38,14 @@ function LoginPageContent({ searchParams }: { searchParams: { error?: string } }
         </div>
 
         {/* Error Messages */}
-        {searchParams.error && (
+        {error && (
           <div className="bg-red-500/10 border border-red-500 rounded-lg p-4">
             <p className="text-red-500 text-sm text-center">
-              {searchParams.error === 'registration_disabled' && 'Регистрация новых пользователей временно отключена'}
-              {searchParams.error === 'invalid' && 'Ошибка авторизации. Попробуйте снова'}
-              {searchParams.error === 'server' && 'Ошибка сервера. Попробуйте позже'}
-              {!['registration_disabled', 'invalid', 'server'].includes(searchParams.error) && 'Произошла ошибка'}
+              {error === 'registration_disabled' && 'Регистрация новых пользователей временно отключена'}
+              {error === 'invalid' && 'Ошибка авторизации. Попробуйте снова'}
+              {error === 'server' && 'Ошибка сервера. Попробуйте позже'}
+              {error === 'auth_error' && 'Ошибка виджета авторизации'}
+              {!['registration_disabled', 'invalid', 'server', 'auth_error'].includes(error) && 'Произошла ошибка'}
             </p>
           </div>
         )}
@@ -59,17 +69,11 @@ function LoginPageContent({ searchParams }: { searchParams: { error?: string } }
             <TelegramLogin
               botUsername={process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME || 'etnomedia_bot'}
               authUrl={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://etno-media.up.railway.app'}/api/auth/telegram`}
-              onAuthSuccess={(user) => {
-                console.log('Auth successful:', user)
-                // Редирект произойдет автоматически через API
-              }}
-              onAuthError={(error) => {
-                console.error('Auth error:', error)
-              }}
+              onAuthSuccess={handleAuthSuccess}
+              onAuthError={handleAuthError}
             />
           </div>
 
-          
           <div className="mt-6 p-4 bg-gray-800 rounded-lg">
             <h3 className="text-sm font-medium text-white mb-2">Как это работает:</h3>
             <ol className="text-xs text-gray-400 space-y-1">
@@ -100,15 +104,5 @@ function LoginPageContent({ searchParams }: { searchParams: { error?: string } }
         </div>
       </div>
     </div>
-  )
-}
-
-export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const { error } = await searchParams
-  
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center"><div className="text-white">Загрузка...</div></div>}>
-      <LoginPageContent searchParams={{ error }} />
-    </Suspense>
   )
 }
