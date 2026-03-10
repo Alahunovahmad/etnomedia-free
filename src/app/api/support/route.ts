@@ -15,9 +15,9 @@ const categories = {
 }
 
 async function sendTelegramMessage(telegramId: string, message: string, replyToId?: string) {
-  const token = process.env.TELEGRAM_BOT_TOKEN
+  const token = process.env.TELEGRAM_SUPPORT_BOT_TOKEN
   if (!token) {
-    throw new Error('TELEGRAM_BOT_TOKEN not found')
+    throw new Error('TELEGRAM_SUPPORT_BOT_TOKEN not found')
   }
 
   const url = `https://api.telegram.org/bot${token}/sendMessage`
