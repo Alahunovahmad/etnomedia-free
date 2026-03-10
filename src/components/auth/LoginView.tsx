@@ -45,9 +45,20 @@ export default function LoginView() {
       const newNonce = data.nonce
       setNonce(newNonce)
       
-      // Открываем Telegram
+      // Определяем мобильное устройство
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      
+      // Открываем Telegram с правильным форматом nonce
       const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME || 'etnomedia_free_bot'
-      window.location.href = `https://t.me/${botUsername}?start=${newNonce}`
+      const telegramUrl = `https://t.me/${botUsername}?start=auth_${newNonce}`
+      
+      if (isMobile) {
+        // На мобильных открываем в текущем окне
+        window.location.href = telegramUrl
+      } else {
+        // На ПК открываем в новой вкладке
+        window.open(telegramUrl, '_blank')
+      }
       
     } catch (error) {
       console.error('Login error:', error)
@@ -198,7 +209,7 @@ export default function LoginView() {
             <button
               onClick={handleLogin}
               disabled={isLoading || isWaiting}
-              className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-[#0088cc] hover:bg-[#0077b3] disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>

@@ -39,12 +39,48 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Если статус COMPLETED и есть userId - генерируем JWT
-    if (pendingAuth.status === 'COMPLETED' && pendingAuth.userId) {
-      // Получаем пользователя
-      const user = await prisma.user.findUnique({
-        where: { id: pendingAuth.userId }
+    // Если статус COMPLETED - создаем/обновляем пользователя и генерируем JWT
+    if (pendingAuth.status === 'COMPLETED') {
+      // Проверяем есть ли данные Telegram
+      if (!pendingAuth.telegramId) {
+        return NextResponse.json(
+          { error: 'Telegram data not found' },
+          { status: 400 }
+        )
+      }
+
+      // Ищем или создаем пользователя
+      let user = await prisma.user.findUnique({
+        where: { telegramId: pendingAuth.telegramId }
       })
+
+      if (!user) {
+        // Проверяем разрешена ли регистрация
+        const registrationEnabled = await isRegistrationEnabled()
+        if (!registrationEnabled) {
+          return NextResponse.json(
+            { error: 'Registration disabled' },
+            { status: 403 }
+          )
+        }
+
+        // Создаем нового пользователя
+        user = await prisma.user.create({
+          data: {
+            telegramId: pendingAuth.telegramId,
+            phoneNumber: pendingAuth.phoneNumber,
+            role: 'USER'
+          }
+        })
+      } else {
+        // Обновляем номер телефона если есть
+        if (pendingAuth.phoneNumber) {
+          user = await prisma.user.update({
+            where: { id: user.id },
+            data: { phoneNumber: pendingAuth.phoneNumber }
+          })
+        }
+      }
 
       if (!user) {
         return NextResponse.json(

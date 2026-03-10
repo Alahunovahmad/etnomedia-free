@@ -26,13 +26,15 @@ model User {
 }
 
 model PendingAuth {
-  id        String   @id @default(uuid())
-  nonce     String   @unique
-  status    String   @default("PENDING") // PENDING, COMPLETED, EXPIRED
-  userId    Int?
-  createdAt DateTime @default(now())
+  id          String   @id @default(uuid())
+  nonce       String   @unique
+  status      String   @default("PENDING") // PENDING, COMPLETED, EXPIRED
+  telegramId  String?
+  phoneNumber String?
+  userId      Int?
+  createdAt   DateTime @default(now())
   
-  user      User?    @relation(fields: [userId], references: [id])
+  user        User?    @relation(fields: [userId], references: [id])
 }
 
 model Movie {
