@@ -8,6 +8,7 @@ export default function LoginView() {
   const [error, setError] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
   const [isWaiting, setIsWaiting] = useState(false)
+  const [authStatus, setAuthStatus] = useState<string>('')
   const [nonce, setNonce] = useState<string>('')
   const searchParams = useSearchParams()
   const pollingRef = useRef<NodeJS.Timeout | null>(null)
@@ -29,6 +30,31 @@ export default function LoginView() {
 
   const handleLogin = async () => {
     if (isLoading) return
+    
+    // Сбрасываем предыдущую авторизацию
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current)
+      pollingRef.current = null
+    }
+    
+    // Очищаем старый nonce из localStorage
+    const oldNonce = localStorage.getItem('auth_nonce')
+    if (oldNonce) {
+      // Сжигаем старый nonce на сервере
+      try {
+        await fetch('/api/auth/cancel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nonce: oldNonce })
+        })
+      } catch (error) {
+        console.error('Error cancelling old nonce:', error)
+      }
+    }
+    
+    localStorage.removeItem('auth_nonce')
+    setNonce('')
+    setIsWaiting(false)
     
     setIsLoading(true)
     setError('')
@@ -91,6 +117,10 @@ export default function LoginView() {
           }
           setError('Время авторизации истекло. Попробуйте снова.')
           setIsWaiting(false)
+          setAuthStatus('')
+        } else {
+          // Устанавливаем статус для отображения правильного сообщения
+          setAuthStatus(data.status || 'PENDING')
         }
       } catch (error) {
         console.error('Polling error:', error)
@@ -230,10 +260,16 @@ export default function LoginView() {
             <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500 rounded-lg">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <RefreshCw className="w-4 h-4 text-blue-500 animate-spin" />
-                <p className="text-blue-500 text-sm font-medium">Ожидание авторизации...</p>
+                <p className="text-blue-500 text-sm font-medium">
+                  {authStatus === 'AWAITING_PHONE' 
+                    ? 'Ожидание номера телефона...' 
+                    : 'Ожидание авторизации...'}
+                </p>
               </div>
               <p className="text-gray-400 text-xs text-center">
-                Подтвердите вход в приложении Telegram. Это может занять несколько секунд.
+                {authStatus === 'AWAITING_PHONE' 
+                  ? 'Пожалуйста, поделитесь номером телефона в Telegram для завершения авторизации.'
+                  : 'Подтвердите вход в приложении Telegram. Это может занять несколько секунд.'}
               </p>
             </div>
           )}

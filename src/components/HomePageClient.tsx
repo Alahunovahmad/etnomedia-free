@@ -10,9 +10,10 @@ import GenreChips from '@/components/shared/GenreChips'
 interface HomePageClientProps {
   movies: Movie[]
   series: Series[]
+  user: any
 }
 
-export default function HomePageClient({ movies, series }: HomePageClientProps) {
+export default function HomePageClient({ movies, series, user }: HomePageClientProps) {
   const { progress, loadProgress } = useWatchProgress()
 
   useEffect(() => {
@@ -34,7 +35,7 @@ export default function HomePageClient({ movies, series }: HomePageClientProps) 
           <div className="absolute inset-0 bg-gradient-to-r from-black via-black/50 to-transparent"></div>
         </div>
         
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between">
           <div className="max-w-xl">
             <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
               ГОРЯЧИЕ
@@ -47,6 +48,25 @@ export default function HomePageClient({ movies, series }: HomePageClientProps) 
               Смотреть
             </button>
           </div>
+          
+          {/* User Info */}
+          {user && (
+            <div className="text-right">
+              <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-4 border border-gray-700">
+                <p className="text-sm text-gray-400 mb-1">Вы вошли как</p>
+                <p className="text-white font-semibold">
+                  {user.firstName || 'Пользователь'}
+                  {user.lastName && ` ${user.lastName}`}
+                </p>
+                {user.username && (
+                  <p className="text-gray-400 text-sm">@{user.username}</p>
+                )}
+                <div className="mt-2 text-xs text-gray-500">
+                  {user.role === 'ADMIN' ? '👑 Администратор' : '👤 Пользователь'}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 

@@ -120,8 +120,8 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Если статус PENDING - возвращаем статус ожидания
-    if (pendingAuth.status === 'PENDING') {
+    // Если статус PENDING или AWAITING_PHONE - возвращаем статус ожидания
+    if (pendingAuth.status === 'PENDING' || pendingAuth.status === 'AWAITING_PHONE') {
       // Проверяем, не истекло ли время (5 минут)
       const isExpired = Date.now() - pendingAuth.createdAt.getTime() > 5 * 60 * 1000
       if (isExpired) {
@@ -136,10 +136,14 @@ export async function GET(request: NextRequest) {
         )
       }
 
+      const message = pendingAuth.status === 'AWAITING_PHONE' 
+        ? 'Waiting for phone number...'
+        : 'Waiting for authorization...'
+
       return NextResponse.json({
         success: false,
-        status: 'PENDING',
-        message: 'Waiting for authorization...'
+        status: pendingAuth.status,
+        message
       })
     }
 

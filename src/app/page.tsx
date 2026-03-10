@@ -108,7 +108,7 @@ export default async function HomePage() {
 
   return (
     <WatchProgressProvider>
-      <HomePageClient movies={movies} series={series} />
+      <HomePageClient movies={movies} series={series} user={user} />
     </WatchProgressProvider>
   )
 }

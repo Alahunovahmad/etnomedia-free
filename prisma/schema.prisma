@@ -28,10 +28,15 @@ model User {
 model PendingAuth {
   id          String   @id @default(uuid())
   nonce       String   @unique
-  status      String   @default("PENDING") // PENDING, COMPLETED, EXPIRED
+  status      String   @default("PENDING") // PENDING, AWAITING_PHONE, COMPLETED, EXPIRED
   telegramId  String?
   phoneNumber String?
   userId      Int?
+  // Временные поля для данных пользователя
+  firstName   String?
+  lastName    String?
+  username    String?
+  photoUrl    String?
   createdAt   DateTime @default(now())
   
   user        User?    @relation(fields: [userId], references: [id])
