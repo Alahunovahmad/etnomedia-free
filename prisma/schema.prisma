@@ -167,7 +167,6 @@ model Settings {
   updatedat DateTime? @default(now()) @db.Timestamp(6)
   
   @@index([key], map: "idx_settings_key")
-  @@map("Settings")
 }
 
 enum Role {
