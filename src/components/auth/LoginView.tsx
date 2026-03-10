@@ -50,7 +50,7 @@ export default function LoginView() {
       
       // Открываем Telegram с правильным форматом nonce
       const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME || 'etnomedia_free_bot'
-      const telegramUrl = `https://t.me/${botUsername}?start=auth_${newNonce}`
+      const telegramUrl = `https://t.me/${botUsername}?start=${newNonce}`
       
       if (isMobile) {
         // На мобильных открываем в текущем окне

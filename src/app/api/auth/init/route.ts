@@ -4,8 +4,8 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET() {
   try {
-    // Генерируем уникальный nonce
-    const nonce = randomBytes(32).toString('hex')
+    // Генерируем уникальный nonce (12 байт = 24 символа)
+    const nonce = randomBytes(12).toString('hex')
     
     // Создаем запись в PendingAuth
     const pendingAuth = await prisma.pendingAuth.create({
