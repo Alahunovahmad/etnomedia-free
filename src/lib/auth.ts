@@ -9,6 +9,7 @@ const JWT_SECRET = new TextEncoder().encode(
 export interface User {
   id: number
   telegramId: string | null
+  phoneNumber: string | null
   firstName: string | null
   lastName: string | null
   username: string | null

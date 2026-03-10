@@ -14,7 +14,7 @@ const categories = {
   other: 'Другое'
 }
 
-async function sendTelegramMessage(telegramId: string, message: string, replyToId?: string) {
+async function sendTelegramMessage(telegramId: string, message: string) {
   const token = process.env.TELEGRAM_SUPPORT_BOT_TOKEN
   if (!token) {
     throw new Error('TELEGRAM_SUPPORT_BOT_TOKEN not found')
@@ -25,13 +25,7 @@ async function sendTelegramMessage(telegramId: string, message: string, replyToI
   const payload = {
     chat_id: telegramId,
     text: message,
-    parse_mode: 'HTML',
-    reply_markup: replyToId ? {
-      inline_keyboard: [[{
-        text: '📞 Ответить пользователю',
-        url: `tg://user?id=${replyToId}`
-      }]]
-    } : undefined
+    parse_mode: 'HTML'
   }
 
   try {
@@ -110,10 +104,19 @@ export async function POST(request: NextRequest) {
     const categoryLabel = categories[category as keyof typeof categories]
     const supportMessage = `🚨 <b>Новое обращение в поддержку!</b>
 
-👤 <b>От:</b> ${user.firstName || 'Неизвестно'} ${user.lastName || ''} (ID: ${user.telegramId || 'Неизвестно'})
+👤 <b>Данные пользователя:</b>
+📛 <b>ФИО:</b> ${user.firstName || 'Неизвестно'} ${user.lastName || ''}
+🆔 <b>ID:</b> ${user.telegramId || 'Неизвестно'}
+👤 <b>Никнейм:</b> @${user.username || 'Неизвестно'}
+📞 <b>Телефон:</b> ${user.phoneNumber || 'Не указан'}
+
 📂 <b>Категория:</b> ${categoryLabel}
-📝 <b>Сообщение:</b>
+
+📝 <b>Обращение:</b>
 ${message}
+
+📞 <b>Ссылка для ответа:</b> 
+tg://user?id=${user.telegramId || 'Неизвестно'}
 
 ⏰ <i>${new Date().toLocaleString('ru-RU')}</i>`
 
@@ -126,8 +129,7 @@ ${message}
 
       const success = await sendTelegramMessage(
         admin.telegramId,
-        supportMessage,
-        user.telegramId || undefined
+        supportMessage
       )
 
       return { telegramId: admin.telegramId, success }
