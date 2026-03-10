@@ -1,4 +1,4 @@
-import { prisma } from '../etno-bot/src/lib/prisma'
+import { prisma } from '../src/lib/prisma'
 import fs from 'fs'
 import path from 'path'
 
