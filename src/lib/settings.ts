@@ -2,7 +2,7 @@ import { prisma } from './prisma'
 
 export async function getSettings() {
   try {
-    const settings = await prisma.Settings.findMany()
+    const settings = await prisma.settings.findMany()
     
     const settingsObj = settings.reduce((acc: Record<string, string>, setting: any) => {
       acc[setting.key] = setting.value
@@ -18,7 +18,7 @@ export async function getSettings() {
 
 export async function getSetting(key: string, defaultValue: string = ''): Promise<string> {
   try {
-    const setting = await prisma.Settings.findUnique({
+    const setting = await prisma.settings.findUnique({
       where: { key }
     })
     
