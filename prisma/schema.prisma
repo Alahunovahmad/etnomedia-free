@@ -161,12 +161,12 @@ model AuthSession {
 }
 
 model Settings {
-  id                  Int      @id @default(autoincrement())
-  key                 String   @unique
-  value               String
-  updatedAt           DateTime @updatedAt
+  id        Int       @id @default(autoincrement())
+  key       String    @unique @db.VarChar(255)
+  value     String?   @db.VarChar
+  updatedat DateTime? @default(now()) @db.Timestamp(6)
   
-  @@index([key])
+  @@index([key], map: "idx_settings_key")
 }
 
 enum Role {
