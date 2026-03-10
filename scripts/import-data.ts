@@ -1,4 +1,4 @@
-import { prisma } from '../src/lib/prisma'
+import { prisma } from '../etno-bot/src/lib/prisma'
 import fs from 'fs'
 import path from 'path'
 
@@ -7,7 +7,7 @@ async function importMovies() {
     console.log('Starting movies import...')
     
     // Read JSON file
-    const jsonPath = path.join(process.cwd(), 'etnomedia-export-2026-03-09.json')
+    const jsonPath = path.join(__dirname, '..', 'etnomedia-export-2026-03-09.json')
     const jsonData = JSON.parse(fs.readFileSync(jsonPath, 'utf8'))
     
     const movies = jsonData.movies || []
@@ -18,15 +18,14 @@ async function importMovies() {
       try {
         await prisma.movie.create({
           data: {
-            id: movie.id,
             title: movie.title,
             description: movie.description || null,
             posterUrl: movie.poster_url || null,
             m3u8Url: movie.m3u8_url,
             bgImage: movie.bg_image || null,
             year: movie.year || null,
-            rating: movie.rating || null,
-            duration: movie.duration ? Math.round(movie.duration) : null,
+            rating: movie.rating || 0.0,
+            duration: movie.duration || null,
             trailerUrl: movie.trailer_url || null,
             actors: movie.actors || null,
             directors: movie.directors || null,
@@ -57,7 +56,7 @@ async function importSeriesAndEpisodes() {
     console.log('Starting series and episodes import...')
     
     // Read JSON file
-    const jsonPath = path.join(process.cwd(), 'etnomedia-export-2026-03-09.json')
+    const jsonPath = path.join(__dirname, '..', 'etnomedia-export-2026-03-09.json')
     const jsonData = JSON.parse(fs.readFileSync(jsonPath, 'utf8'))
     
     const series = jsonData.series || []
@@ -73,13 +72,12 @@ async function importSeriesAndEpisodes() {
       // Create series
       const createdSeries = await prisma.series.create({
         data: {
-          id: serie.id,
           title: serie.title,
           description: serie.description || null,
           posterUrl: serie.poster_url || null,
           bgImage: serie.bg_image || null,
           year: serie.year || null,
-          rating: serie.rating || null,
+          rating: serie.rating || 0.0,
           actors: serie.actors || null,
           directors: serie.directors || null,
           genres: serie.genres || null
@@ -92,12 +90,13 @@ async function importSeriesAndEpisodes() {
       for (const episode of episodes) {
         await prisma.episode.create({
           data: {
-            id: episode.id,
             seriesId: createdSeries.id,
             season: episode.season || 1,
             episodeNumber: episode.episode_number,
             title: episode.title || null,
-            m3u8Url: episode.m3u8_url
+            m3u8Url: episode.m3u8_url,
+            duration: episode.duration || null,
+            posterUrl: episode.poster_url || null
           }
         })
         console.log(`  - Imported episode S${episode.season}E${episode.episode_number}`)
@@ -115,6 +114,7 @@ async function importSeriesAndEpisodes() {
 async function main() {
   try {
     await importMovies()
+    await importSeriesAndEpisodes()
     console.log('Import completed successfully!')
   } catch (error) {
     console.error('Import failed:', error)

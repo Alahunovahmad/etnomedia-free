@@ -21,24 +21,22 @@ model User {
   authSessions AuthSession[]
   favorites    Favorite[]
   addedMovies  Movie[]        @relation("UserAddedMovies")
-  watchHistory WatchHistory[]
   pendingAuths PendingAuth[]
+  watchHistory WatchHistory[]
 }
 
 model PendingAuth {
   id          String   @id @default(uuid())
   nonce       String   @unique
-  status      String   @default("PENDING") // PENDING, AWAITING_PHONE, COMPLETED, EXPIRED
-  telegramId  String?
-  phoneNumber String?
+  status      String   @default("PENDING")
   userId      Int?
-  // Временные поля для данных пользователя
+  createdAt   DateTime @default(now())
   firstName   String?
   lastName    String?
-  username    String?
+  phoneNumber String?
   photoUrl    String?
-  createdAt   DateTime @default(now())
-  
+  telegramId  String?
+  username    String?
   user        User?    @relation(fields: [userId], references: [id])
 }
 
@@ -94,9 +92,9 @@ model Episode {
   episodeNumber Int
   title         String?
   m3u8Url       String
+  createdAt     DateTime       @default(now())
   duration      Int?
   posterUrl     String?
-  createdAt     DateTime       @default(now())
   series        Series         @relation(fields: [seriesId], references: [id], onDelete: Cascade)
   watchHistory  WatchHistory[]
 
@@ -170,7 +168,7 @@ model Settings {
   key       String    @unique @db.VarChar(255)
   value     String?   @db.VarChar
   updatedat DateTime? @default(now()) @db.Timestamp(6)
-  
+
   @@index([key], map: "idx_settings_key")
 }
 
