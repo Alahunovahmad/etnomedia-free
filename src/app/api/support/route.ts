@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
 ${message}
 
 📞 <b>Ссылка для ответа:</b> 
-tg://user?id=${user.telegramId || 'Неизвестно'}
+<a href="tg://user?id=${user.telegramId || 'Неизвестно'}">Ответить</a>
 
 ⏰ <i>${new Date().toLocaleString('ru-RU')}</i>`
 
