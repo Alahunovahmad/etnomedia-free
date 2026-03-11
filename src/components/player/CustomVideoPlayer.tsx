@@ -72,6 +72,7 @@ export default function CustomVideoPlayer({
   // Advanced features
   const [playbackRate, setPlaybackRate] = useState(1)
   const [showSettings, setShowSettings] = useState(false)
+  const [settingsTab, setSettingsTab] = useState<'quality' | 'speed'>('quality')
   const [qualities, setQualities] = useState<Array<{ height: number, bitrate: number }>>([])
   const [currentQuality, setCurrentQuality] = useState(-1)
   const [showNextEpisode, setShowNextEpisode] = useState(false)
@@ -120,10 +121,13 @@ export default function CustomVideoPlayer({
       
       hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
         setIsLoading(false)
-        setQualities(data.levels.map((level: any) => ({
+        const parsedQualities = data.levels.map((level: any) => ({
           height: level.height,
           bitrate: level.bitrate
-        })))
+        }))
+        setQualities(parsedQualities)
+        // Если нет выбора качества, сразу открываем вкладку скорости
+        if (parsedQualities.length === 0) setSettingsTab('speed')
       })
 
       hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
@@ -144,6 +148,7 @@ export default function CustomVideoPlayer({
       // Native HLS support (Safari)
       video.src = videoUrl
       setIsLoading(false)
+      setSettingsTab('speed') // В нативе HLS нельзя вручную переключать качество через JS
     }
   }, [videoUrl, initialTime])
 
@@ -255,7 +260,6 @@ export default function CustomVideoPlayer({
 
   const toggleMute = useCallback(() => setIsMuted(!isMuted), [isMuted])
 
-  // ИСПРАВЛЕННЫЙ ФУЛЛСКРИН ДЛЯ МОБИЛОК
   const toggleFullscreen = useCallback(async () => {
     if (!containerRef.current || !videoRef.current) return
     
@@ -273,7 +277,6 @@ export default function CustomVideoPlayer({
         if (container.requestFullscreen) {
           await container.requestFullscreen()
         } else if (video.webkitEnterFullscreen) {
-          // Специальный хак для iOS Safari (iPhone)
           video.webkitEnterFullscreen()
         } else if ((container as any).webkitRequestFullscreen) {
           await (container as any).webkitRequestFullscreen()
@@ -302,7 +305,6 @@ export default function CustomVideoPlayer({
     }
   }, [])
 
-  // Обработка событий фуллскрина (для синхронизации иконки)
   useEffect(() => {
     const video = videoRef.current
     const doc = document as any
@@ -315,13 +317,11 @@ export default function CustomVideoPlayer({
       setIsFullscreen(isFs)
     }
 
-    // События для стандартных браузеров
     doc.addEventListener('fullscreenchange', handleFsChange)
     doc.addEventListener('webkitfullscreenchange', handleFsChange)
     doc.addEventListener('mozfullscreenchange', handleFsChange)
     doc.addEventListener('MSFullscreenChange', handleFsChange)
 
-    // Специфичные события для iOS Video
     const handleWebkitBeginFs = () => setIsFullscreen(true)
     const handleWebkitEndFs = () => setIsFullscreen(false)
 
@@ -405,19 +405,6 @@ export default function CustomVideoPlayer({
             onNextEpisode()
           }
           break
-        case 'Digit1':
-        case 'Digit2':
-        case 'Digit3':
-        case 'Digit4':
-        case 'Digit5':
-        case 'Digit6':
-        case 'Digit7':
-        case 'Digit8':
-        case 'Digit9':
-          e.preventDefault()
-          const num = parseInt(code.replace('Digit', ''))
-          video.currentTime = (duration * num) / 10
-          break
       }
     }
 
@@ -433,7 +420,7 @@ export default function CustomVideoPlayer({
       }
       controlsTimeoutRef.current = setTimeout(() => {
         setShowControls(false)
-        setShowSettings(false) // Прячем настройки тоже
+        setShowSettings(false)
       }, 5000)
     }
     return () => {
@@ -493,14 +480,14 @@ export default function CustomVideoPlayer({
       }`}
       onMouseMove={() => setShowControls(true)}
       onMouseLeave={() => isPlaying && setShowControls(false)}
-      onTouchStart={() => setShowControls(true)} // Добавлено для мобильных
+      onTouchStart={() => setShowControls(true)}
     >
       {/* Video Element */}
       <video
         ref={videoRef}
         className="w-full h-full object-contain"
         poster={posterUrl}
-        playsInline // Важно для iOS чтобы не открывалось сразу в нативе
+        playsInline
         onClick={togglePlay}
       />
 
@@ -570,12 +557,10 @@ export default function CustomVideoPlayer({
           {/* Control Buttons */}
           <div className="flex items-center justify-between text-white">
             <div className="flex items-center gap-3 md:gap-4">
-              {/* Play/Pause */}
               <button onClick={togglePlay} className="hover:text-red-500 transition-colors p-1">
                 {isPlaying ? <Pause className="w-6 h-6 md:w-8 md:h-8 fill-current" /> : <Play className="w-6 h-6 md:w-8 md:h-8 fill-current" />}
               </button>
 
-              {/* Volume (hidden on very small screens) */}
               <div className="hidden sm:flex items-center gap-2 group/volume">
                 <button onClick={toggleMute} className="hover:text-red-500 transition-colors p-1">
                   {isMuted || volume === 0 ? <VolumeX className="w-5 h-5 md:w-6 md:h-6" /> : <Volume2 className="w-5 h-5 md:w-6 md:h-6" />}
@@ -594,7 +579,6 @@ export default function CustomVideoPlayer({
                 />
               </div>
 
-              {/* Time */}
               <span className="text-xs md:text-sm font-medium tracking-wide">
                 {formatTime(currentTime)} / {formatTime(duration)}
               </span>
@@ -610,63 +594,84 @@ export default function CustomVideoPlayer({
                   <Settings className="w-5 h-5 md:w-6 md:h-6" />
                 </button>
 
+                {/* TABBED SETTINGS MENU */}
                 {showSettings && (
-                  <div className="absolute bottom-[calc(100%+1rem)] right-0 bg-black/95 border border-white/10 rounded-xl p-3 md:p-4 min-w-[160px] md:min-w-[200px] space-y-4 shadow-2xl z-50">
-                    {/* Playback Speed */}
-                    <div>
-                      <div className="text-xs md:text-sm font-semibold mb-2 text-gray-400 uppercase tracking-wider">Скорость</div>
-                      <div className="space-y-0.5">
-                        {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate: number) => (
-                          <button
-                            key={rate}
-                            onClick={() => changePlaybackRate(rate)}
-                            className={`block w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ${
-                              playbackRate === rate ? 'bg-red-600 text-white' : 'hover:bg-white/10 text-gray-200'
-                            }`}
-                          >
-                            {rate}x {rate === 1 && '(Обычная)'}
-                          </button>
-                        ))}
-                      </div>
+                  <div className="absolute bottom-[calc(100%+1rem)] right-0 bg-[#1e1e1e]/95 backdrop-blur-md border border-white/10 rounded-xl p-3 w-[240px] shadow-2xl z-50 flex flex-col max-h-[50vh] overflow-hidden">
+                    
+                    {/* Tabs Header */}
+                    <div className="flex items-center bg-white/5 rounded-lg p-1 mb-3 shrink-0">
+                      {qualities.length > 0 && (
+                        <button
+                          onClick={() => setSettingsTab('quality')}
+                          className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                            settingsTab === 'quality' 
+                              ? 'bg-white/20 text-white shadow-sm' 
+                              : 'text-white/60 hover:text-white'
+                          }`}
+                        >
+                          Качество
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setSettingsTab('speed')}
+                        className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                          settingsTab === 'speed' 
+                            ? 'bg-white/20 text-white shadow-sm' 
+                            : 'text-white/60 hover:text-white'
+                        }`}
+                      >
+                        Скорость
+                      </button>
                     </div>
 
-                    {/* Quality */}
-                    {qualities.length > 0 && (
-                      <div>
-                        <div className="text-xs md:text-sm font-semibold mb-2 text-gray-400 uppercase tracking-wider">Качество</div>
-                        <div className="space-y-0.5">
+                    {/* Scrollable Content */}
+                    <div className="overflow-y-auto pr-1 flex-1 -mr-1">
+                      {settingsTab === 'quality' && qualities.length > 0 ? (
+                        <div className="space-y-1">
                           <button
                             onClick={() => changeQuality(-1)}
-                            className={`block w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ${
-                              currentQuality === -1 ? 'bg-red-600 text-white' : 'hover:bg-white/10 text-gray-200'
+                            className={`block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                              currentQuality === -1 ? 'bg-red-600/90 text-white font-medium' : 'hover:bg-white/10 text-gray-200'
                             }`}
                           >
-                            Авто
+                            Автоматически
                           </button>
                           {qualities.map((quality: any, index: number) => (
                             <button
                               key={index}
                               onClick={() => changeQuality(index)}
-                              className={`block w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ${
-                                currentQuality === index ? 'bg-red-600 text-white' : 'hover:bg-white/10 text-gray-200'
+                              className={`block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                                currentQuality === index ? 'bg-red-600/90 text-white font-medium' : 'hover:bg-white/10 text-gray-200'
                               }`}
                             >
                               {quality.height}p
                             </button>
                           ))}
                         </div>
-                      </div>
-                    )}
+                      ) : (
+                        <div className="space-y-1">
+                          {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate: number) => (
+                            <button
+                              key={rate}
+                              onClick={() => changePlaybackRate(rate)}
+                              className={`block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                                playbackRate === rate ? 'bg-red-600/90 text-white font-medium' : 'hover:bg-white/10 text-gray-200'
+                              }`}
+                            >
+                              {rate}x {rate === 1 && <span className="text-xs opacity-75 ml-1">(Обычная)</span>}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
 
-              {/* PiP (Hidden on small mobile since it's often not supported well in custom UI) */}
               <button onClick={togglePiP} className="hidden sm:block hover:text-red-500 transition-colors p-1">
                 <PictureInPicture className="w-5 h-5 md:w-6 md:h-6" />
               </button>
 
-              {/* Fullscreen */}
               <button onClick={toggleFullscreen} className="hover:text-red-500 transition-colors p-1">
                 {isFullscreen ? <Minimize className="w-5 h-5 md:w-6 md:h-6" /> : <Maximize className="w-5 h-5 md:w-6 md:h-6" />}
               </button>
