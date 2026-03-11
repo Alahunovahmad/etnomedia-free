@@ -141,10 +141,11 @@ export default function CustomVideoPlayer({
         hls.destroy()
       }
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Native HLS support (Safari)
       video.src = videoUrl
       setIsLoading(false)
     }
-  }, [videoUrl])
+  }, [videoUrl, initialTime])
 
   // Save progress to server
   const saveProgressToServer = useCallback(async (currentTime: number, duration: number) => {
@@ -180,9 +181,7 @@ export default function CustomVideoPlayer({
       saveProgressTimeoutRef.current = setTimeout(() => {
         const progress = currentTime / duration
         if (progress < 0.95) {
-          // Сохраняем на сервер
           saveProgressToServer(currentTime, duration)
-          // И в localStorage как backup
           localStorage.setItem(getWatchKey(), currentTime.toString())
         } else {
           localStorage.removeItem(getWatchKey())
@@ -191,16 +190,13 @@ export default function CustomVideoPlayer({
     }
   }, [currentTime, duration, saveProgressToServer])
 
-  // Show next episode button 4 minutes before end
+  // Show next episode button
   useEffect(() => {
-    if (!nextEpisode || !duration || !hasStartedPlaying) {
-      return
-    }
+    if (!nextEpisode || !duration || !hasStartedPlaying) return
 
     const timeRemaining = duration - currentTime
     const watchProgress = currentTime / duration
     
-    // Only show next episode button if watched >30% and <4 min remaining
     if (isPlaying && watchProgress > 0.3 && timeRemaining <= 240 && timeRemaining > 10) {
       setShowNextEpisode(true)
     } else {
@@ -220,16 +216,12 @@ export default function CustomVideoPlayer({
       }
     }
 
-    const handleLoadedMetadata = () => {
-      setDuration(video.duration)
-    }
-
+    const handleLoadedMetadata = () => setDuration(video.duration)
     const handlePlay = () => {
       setIsPlaying(true)
       setIsLoading(false)
       setHasStartedPlaying(true)
     }
-
     const handlePause = () => setIsPlaying(false)
     const handleWaiting = () => setIsLoading(true)
     const handleCanPlay = () => setIsLoading(false)
@@ -261,46 +253,97 @@ export default function CustomVideoPlayer({
     }
   }, [isPlaying])
 
-  const toggleMute = useCallback(() => {
-    setIsMuted(!isMuted)
-  }, [isMuted])
+  const toggleMute = useCallback(() => setIsMuted(!isMuted), [isMuted])
 
-  const toggleFullscreen = useCallback(() => {
-    if (!containerRef.current) return
+  // ИСПРАВЛЕННЫЙ ФУЛЛСКРИН ДЛЯ МОБИЛОК
+  const toggleFullscreen = useCallback(async () => {
+    if (!containerRef.current || !videoRef.current) return
     
     const container = containerRef.current
+    const video = videoRef.current as any
     const doc = document as any
     
-    if (!doc.fullscreenElement && !doc.webkitFullscreenElement && !doc.mozFullScreenElement) {
-      // Try different fullscreen APIs for mobile compatibility
-      const requestFullscreen = (container as any).requestFullscreen || 
-                              (container as any).webkitRequestFullscreen || 
-                              (container as any).webkitRequestFullScreen || 
-                              (container as any).mozRequestFullScreen || 
-                              (container as any).msRequestFullscreen
-      
-      if (requestFullscreen) {
-        requestFullscreen.call(container)
-        setIsFullscreen(true)
+    const isCurrentlyFull = !!(doc.fullscreenElement || 
+                               doc.webkitFullscreenElement || 
+                               doc.mozFullScreenElement || 
+                               doc.msFullscreenElement)
+
+    if (!isCurrentlyFull) {
+      try {
+        if (container.requestFullscreen) {
+          await container.requestFullscreen()
+        } else if (video.webkitEnterFullscreen) {
+          // Специальный хак для iOS Safari (iPhone)
+          video.webkitEnterFullscreen()
+        } else if ((container as any).webkitRequestFullscreen) {
+          await (container as any).webkitRequestFullscreen()
+        } else if ((container as any).mozRequestFullScreen) {
+          await (container as any).mozRequestFullScreen()
+        } else if ((container as any).msRequestFullscreen) {
+          await (container as any).msRequestFullscreen()
+        }
+      } catch (err) {
+        console.error("Fullscreen error:", err)
       }
     } else {
-      // Try different exit fullscreen APIs
-      const exitFullscreen = doc.exitFullscreen || 
-                           doc.webkitExitFullscreen || 
-                           doc.webkitCancelFullScreen || 
-                           doc.mozCancelFullScreen || 
-                           doc.msExitFullscreen
-      
-      if (exitFullscreen) {
-        exitFullscreen.call(doc)
-        setIsFullscreen(false)
+      try {
+        if (doc.exitFullscreen) {
+          await doc.exitFullscreen()
+        } else if (doc.webkitExitFullscreen) {
+          doc.webkitExitFullscreen()
+        } else if (doc.mozCancelFullScreen) {
+          doc.mozCancelFullScreen()
+        } else if (doc.msExitFullscreen) {
+          doc.msExitFullscreen()
+        }
+      } catch (err) {
+        console.error("Exit fullscreen error:", err)
+      }
+    }
+  }, [])
+
+  // Обработка событий фуллскрина (для синхронизации иконки)
+  useEffect(() => {
+    const video = videoRef.current
+    const doc = document as any
+
+    const handleFsChange = () => {
+      const isFs = !!(doc.fullscreenElement || 
+                      doc.webkitFullscreenElement || 
+                      doc.mozFullScreenElement || 
+                      doc.msFullscreenElement)
+      setIsFullscreen(isFs)
+    }
+
+    // События для стандартных браузеров
+    doc.addEventListener('fullscreenchange', handleFsChange)
+    doc.addEventListener('webkitfullscreenchange', handleFsChange)
+    doc.addEventListener('mozfullscreenchange', handleFsChange)
+    doc.addEventListener('MSFullscreenChange', handleFsChange)
+
+    // Специфичные события для iOS Video
+    const handleWebkitBeginFs = () => setIsFullscreen(true)
+    const handleWebkitEndFs = () => setIsFullscreen(false)
+
+    if (video) {
+      video.addEventListener('webkitbeginfullscreen', handleWebkitBeginFs)
+      video.addEventListener('webkitendfullscreen', handleWebkitEndFs)
+    }
+
+    return () => {
+      doc.removeEventListener('fullscreenchange', handleFsChange)
+      doc.removeEventListener('webkitfullscreenchange', handleFsChange)
+      doc.removeEventListener('mozfullscreenchange', handleFsChange)
+      doc.removeEventListener('MSFullscreenChange', handleFsChange)
+      if (video) {
+        video.removeEventListener('webkitbeginfullscreen', handleWebkitBeginFs)
+        video.removeEventListener('webkitendfullscreen', handleWebkitEndFs)
       }
     }
   }, [])
 
   const togglePiP = useCallback(async () => {
     if (!videoRef.current) return
-    
     try {
       if (document.pictureInPictureElement) {
         await document.exitPictureInPicture()
@@ -318,10 +361,8 @@ export default function CustomVideoPlayer({
       if (!videoRef.current) return
       const video = videoRef.current
 
-      // Ignore if typing in input
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
 
-      // Use e.code for physical key position (works with any keyboard layout)
       const code = e.code
 
       switch (code) {
@@ -381,10 +422,7 @@ export default function CustomVideoPlayer({
     }
 
     window.addEventListener('keydown', handleKeyPress)
-    
-    return () => {
-      window.removeEventListener('keydown', handleKeyPress)
-    }
+    return () => window.removeEventListener('keydown', handleKeyPress)
   }, [duration, nextEpisode, onNextEpisode, togglePlay, toggleMute, toggleFullscreen, togglePiP])
 
   // Auto-hide controls
@@ -395,6 +433,7 @@ export default function CustomVideoPlayer({
       }
       controlsTimeoutRef.current = setTimeout(() => {
         setShowControls(false)
+        setShowSettings(false) // Прячем настройки тоже
       }, 5000)
     }
     return () => {
@@ -406,7 +445,6 @@ export default function CustomVideoPlayer({
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!progressBarRef.current || !videoRef.current) return
-    
     const rect = progressBarRef.current.getBoundingClientRect()
     const pos = (e.clientX - rect.left) / rect.width
     videoRef.current.currentTime = pos * duration
@@ -435,37 +473,8 @@ export default function CustomVideoPlayer({
     }
   }, [volume, isMuted])
 
-  // Fullscreen event listeners for mobile compatibility
-  useEffect(() => {
-    const doc = document as any
-    const handleFullscreenChange = () => {
-      const isFullscreenActive = !!(doc.fullscreenElement || 
-                                   doc.webkitFullscreenElement || 
-                                   doc.mozFullScreenElement || 
-                                   doc.msFullscreenElement)
-      setIsFullscreen(isFullscreenActive)
-    }
-
-    // Add event listeners for different browsers
-    const events = [
-      'fullscreenchange',
-      'webkitfullscreenchange',
-      'mozfullscreenchange',
-      'MSFullscreenChange'
-    ]
-
-    events.forEach(event => {
-      doc.addEventListener(event, handleFullscreenChange)
-    })
-
-    return () => {
-      events.forEach(event => {
-        doc.removeEventListener(event, handleFullscreenChange)
-      })
-    }
-  }, [])
-
   const formatTime = (seconds: number) => {
+    if (isNaN(seconds)) return "0:00"
     const h = Math.floor(seconds / 3600)
     const m = Math.floor((seconds % 3600) / 60)
     const s = Math.floor(seconds % 60)
@@ -479,56 +488,42 @@ export default function CustomVideoPlayer({
   return (
     <div 
       ref={containerRef}
-      className="relative w-full aspect-video bg-black rounded-lg overflow-hidden group"
-      style={{
-        ...(isFullscreen && {
-          width: '100vw',
-          height: '100vh',
-          maxWidth: '100vw',
-          maxHeight: '100vh',
-          borderRadius: '0',
-          position: 'fixed',
-          top: '0',
-          left: '0',
-          zIndex: '9999'
-        })
-      }}
+      className={`relative w-full bg-black overflow-hidden group flex items-center justify-center transition-all ${
+        isFullscreen ? 'fixed inset-0 z-[9999] h-screen w-screen rounded-none' : 'aspect-video rounded-lg'
+      }`}
       onMouseMove={() => setShowControls(true)}
       onMouseLeave={() => isPlaying && setShowControls(false)}
+      onTouchStart={() => setShowControls(true)} // Добавлено для мобильных
     >
       {/* Video Element */}
       <video
         ref={videoRef}
-        className="w-full h-full"
+        className="w-full h-full object-contain"
         poster={posterUrl}
-        playsInline
+        playsInline // Важно для iOS чтобы не открывалось сразу в нативе
         onClick={togglePlay}
       />
 
       {/* Loading Indicator */}
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50 pointer-events-none">
           <Loader2 className="w-16 h-16 text-red-600 animate-spin" />
         </div>
       )}
 
-
       {/* Controls Overlay */}
       <div 
-        className={`absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent transition-opacity duration-300 ${
-          showControls ? 'opacity-100' : 'opacity-0'
+        className={`absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 transition-opacity duration-300 ${
+          showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={(e) => {
-          // Only toggle play if clicking on the overlay itself, not on controls
-          if (e.target === e.currentTarget) {
-            togglePlay()
-          }
+          if (e.target === e.currentTarget) togglePlay()
         }}
       >
         {/* Top Bar - Episode Info */}
         {currentEpisode && (
-          <div className="absolute top-0 left-0 right-0 p-6">
-            <h2 className="text-xl font-bold">
+          <div className="absolute top-0 left-0 right-0 p-4 md:p-6 pointer-events-none">
+            <h2 className="text-lg md:text-xl font-bold text-white drop-shadow-md">
               Сезон {currentEpisode.season} Серия {currentEpisode.episodeNumber}
               {currentEpisode.title && `: ${currentEpisode.title}`}
             </h2>
@@ -537,53 +532,53 @@ export default function CustomVideoPlayer({
 
         {/* Next Episode Button */}
         {showNextEpisode && nextEpisode && (
-          <div className="absolute top-6 right-6">
+          <div className="absolute top-16 md:top-6 right-4 md:right-6 pointer-events-auto">
             <button
               onClick={onNextEpisode}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors text-sm md:text-base shadow-lg"
             >
-              <SkipForward className="w-5 h-5" />
+              <SkipForward className="w-4 h-4 md:w-5 md:h-5" />
               Следующая серия
             </button>
           </div>
         )}
 
         {/* Bottom Controls */}
-        <div className="absolute bottom-0 left-0 right-0 p-6 space-y-4">
+        <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 space-y-4 pointer-events-auto">
           {/* Progress Bar */}
           <div 
             ref={progressBarRef}
-            className="relative h-1 bg-gray-600 rounded-full cursor-pointer group/progress"
+            className="relative h-1.5 md:h-1 bg-gray-600/50 rounded-full cursor-pointer group/progress"
             onClick={handleProgressClick}
           >
             {/* Buffered */}
             <div 
-              className="absolute h-full bg-gray-500 rounded-full"
-              style={{ width: `${(buffered / duration) * 100}%` }}
+              className="absolute h-full bg-gray-400/50 rounded-full transition-all duration-200"
+              style={{ width: `${duration ? (buffered / duration) * 100 : 0}%` }}
             />
             {/* Progress */}
             <div 
-              className="absolute h-full bg-red-600 rounded-full"
-              style={{ width: `${(currentTime / duration) * 100}%` }}
+              className="absolute h-full bg-red-600 rounded-full transition-all duration-200"
+              style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
             />
             {/* Hover indicator */}
-            <div className="absolute -top-1 h-3 w-3 bg-red-600 rounded-full opacity-0 group-hover/progress:opacity-100 transition-opacity"
-              style={{ left: `${(currentTime / duration) * 100}%`, transform: 'translateX(-50%)' }}
+            <div className="absolute top-1/2 -translate-y-1/2 h-3 w-3 md:h-3 md:w-3 bg-red-600 rounded-full opacity-100 md:opacity-0 group-hover/progress:opacity-100 transition-opacity shadow-sm"
+              style={{ left: `${duration ? (currentTime / duration) * 100 : 0}%`, transform: 'translate(-50%, -50%)' }}
             />
           </div>
 
           {/* Control Buttons */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between text-white">
+            <div className="flex items-center gap-3 md:gap-4">
               {/* Play/Pause */}
-              <button onClick={togglePlay} className="hover:text-red-600 transition-colors">
-                {isPlaying ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8" />}
+              <button onClick={togglePlay} className="hover:text-red-500 transition-colors p-1">
+                {isPlaying ? <Pause className="w-6 h-6 md:w-8 md:h-8 fill-current" /> : <Play className="w-6 h-6 md:w-8 md:h-8 fill-current" />}
               </button>
 
-              {/* Volume */}
-              <div className="flex items-center gap-2 group/volume">
-                <button onClick={toggleMute} className="hover:text-red-600 transition-colors">
-                  {isMuted || volume === 0 ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+              {/* Volume (hidden on very small screens) */}
+              <div className="hidden sm:flex items-center gap-2 group/volume">
+                <button onClick={toggleMute} className="hover:text-red-500 transition-colors p-1">
+                  {isMuted || volume === 0 ? <VolumeX className="w-5 h-5 md:w-6 md:h-6" /> : <Volume2 className="w-5 h-5 md:w-6 md:h-6" />}
                 </button>
                 <input
                   type="range"
@@ -595,41 +590,41 @@ export default function CustomVideoPlayer({
                     setVolume(parseFloat(e.target.value))
                     setIsMuted(false)
                   }}
-                  className="w-0 opacity-0 group-hover/volume:w-20 group-hover/volume:opacity-100 transition-all duration-300 accent-red-600"
+                  className="w-0 opacity-0 group-hover/volume:w-20 group-hover/volume:opacity-100 transition-all duration-300 accent-red-600 cursor-pointer"
                 />
               </div>
 
               {/* Time */}
-              <span className="text-sm">
+              <span className="text-xs md:text-sm font-medium tracking-wide">
                 {formatTime(currentTime)} / {formatTime(duration)}
               </span>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4">
               {/* Settings */}
               <div className="relative">
                 <button 
                   onClick={() => setShowSettings(!showSettings)}
-                  className="hover:text-red-600 transition-colors"
+                  className={`hover:text-red-500 transition-colors p-1 ${showSettings ? 'text-red-500' : ''}`}
                 >
-                  <Settings className="w-6 h-6" />
+                  <Settings className="w-5 h-5 md:w-6 md:h-6" />
                 </button>
 
                 {showSettings && (
-                  <div className="absolute bottom-full right-0 mb-2 bg-black/95 rounded-lg p-4 min-w-[200px] space-y-4">
+                  <div className="absolute bottom-[calc(100%+1rem)] right-0 bg-black/95 border border-white/10 rounded-xl p-3 md:p-4 min-w-[160px] md:min-w-[200px] space-y-4 shadow-2xl z-50">
                     {/* Playback Speed */}
                     <div>
-                      <div className="text-sm font-semibold mb-2">Скорость</div>
-                      <div className="space-y-1">
+                      <div className="text-xs md:text-sm font-semibold mb-2 text-gray-400 uppercase tracking-wider">Скорость</div>
+                      <div className="space-y-0.5">
                         {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate: number) => (
                           <button
                             key={rate}
                             onClick={() => changePlaybackRate(rate)}
-                            className={`block w-full text-left px-3 py-1 rounded ${
-                              playbackRate === rate ? 'bg-red-600' : 'hover:bg-gray-800'
+                            className={`block w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ${
+                              playbackRate === rate ? 'bg-red-600 text-white' : 'hover:bg-white/10 text-gray-200'
                             }`}
                           >
-                            {rate}x
+                            {rate}x {rate === 1 && '(Обычная)'}
                           </button>
                         ))}
                       </div>
@@ -638,12 +633,12 @@ export default function CustomVideoPlayer({
                     {/* Quality */}
                     {qualities.length > 0 && (
                       <div>
-                        <div className="text-sm font-semibold mb-2">Качество</div>
-                        <div className="space-y-1">
+                        <div className="text-xs md:text-sm font-semibold mb-2 text-gray-400 uppercase tracking-wider">Качество</div>
+                        <div className="space-y-0.5">
                           <button
                             onClick={() => changeQuality(-1)}
-                            className={`block w-full text-left px-3 py-1 rounded ${
-                              currentQuality === -1 ? 'bg-red-600' : 'hover:bg-gray-800'
+                            className={`block w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ${
+                              currentQuality === -1 ? 'bg-red-600 text-white' : 'hover:bg-white/10 text-gray-200'
                             }`}
                           >
                             Авто
@@ -652,8 +647,8 @@ export default function CustomVideoPlayer({
                             <button
                               key={index}
                               onClick={() => changeQuality(index)}
-                              className={`block w-full text-left px-3 py-1 rounded ${
-                                currentQuality === index ? 'bg-red-600' : 'hover:bg-gray-800'
+                              className={`block w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ${
+                                currentQuality === index ? 'bg-red-600 text-white' : 'hover:bg-white/10 text-gray-200'
                               }`}
                             >
                               {quality.height}p
@@ -666,14 +661,14 @@ export default function CustomVideoPlayer({
                 )}
               </div>
 
-              {/* PiP */}
-              <button onClick={togglePiP} className="hover:text-red-600 transition-colors">
-                <PictureInPicture className="w-6 h-6" />
+              {/* PiP (Hidden on small mobile since it's often not supported well in custom UI) */}
+              <button onClick={togglePiP} className="hidden sm:block hover:text-red-500 transition-colors p-1">
+                <PictureInPicture className="w-5 h-5 md:w-6 md:h-6" />
               </button>
 
               {/* Fullscreen */}
-              <button onClick={toggleFullscreen} className="hover:text-red-600 transition-colors">
-                {isFullscreen ? <Minimize className="w-6 h-6" /> : <Maximize className="w-6 h-6" />}
+              <button onClick={toggleFullscreen} className="hover:text-red-500 transition-colors p-1">
+                {isFullscreen ? <Minimize className="w-5 h-5 md:w-6 md:h-6" /> : <Maximize className="w-5 h-5 md:w-6 md:h-6" />}
               </button>
             </div>
           </div>
