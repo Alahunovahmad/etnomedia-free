@@ -18,7 +18,47 @@ export default function LoginView() {
     if (errorParam) {
       setError(errorParam)
     }
+    
+    // Очищаем кэш и сбрасываем авторизацию при переходе на страницу входа
+    resetAuthState()
   }, [searchParams])
+
+  // Немедленная очистка при первом рендере (без зависимостей)
+  useEffect(() => {
+    resetAuthState()
+  }, [])
+
+  // Функция для полного сброса состояния авторизации
+  const resetAuthState = async () => {
+    // Останавливаем текущий polling
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current)
+      pollingRef.current = null
+    }
+    
+    // Очищаем старый nonce из localStorage
+    const oldNonce = localStorage.getItem('auth_nonce')
+    if (oldNonce) {
+      try {
+        // Сжигаем старый nonce на сервере
+        await fetch('/api/auth/cancel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nonce: oldNonce })
+        })
+      } catch (error) {
+        console.error('Error cancelling old nonce:', error)
+      }
+    }
+    
+    // Полная очистка локального состояния
+    localStorage.removeItem('auth_nonce')
+    setNonce('')
+    setIsWaiting(false)
+    setAuthStatus('')
+    setError('')
+    setIsLoading(false)
+  }
 
   useEffect(() => {
     return () => {
@@ -31,33 +71,10 @@ export default function LoginView() {
   const handleLogin = async () => {
     if (isLoading) return
     
-    // Сбрасываем предыдущую авторизацию
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current)
-      pollingRef.current = null
-    }
-    
-    // Очищаем старый nonce из localStorage
-    const oldNonce = localStorage.getItem('auth_nonce')
-    if (oldNonce) {
-      // Сжигаем старый nonce на сервере
-      try {
-        await fetch('/api/auth/cancel', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nonce: oldNonce })
-        })
-      } catch (error) {
-        console.error('Error cancelling old nonce:', error)
-      }
-    }
-    
-    localStorage.removeItem('auth_nonce')
-    setNonce('')
-    setIsWaiting(false)
+    // Полный сброс состояния перед началом новой авторизации
+    await resetAuthState()
     
     setIsLoading(true)
-    setError('')
 
     try {
       // Получаем nonce
@@ -140,9 +157,10 @@ export default function LoginView() {
   const handleResetSession = async () => {
     if (isLoading) return
     
+    await resetAuthState()
+    
     try {
       await fetch('/api/auth/logout', { method: 'POST' })
-      localStorage.removeItem('auth_nonce')
       window.location.reload()
     } catch (error) {
       console.error('Reset session error:', error)
