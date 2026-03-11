@@ -268,12 +268,33 @@ export default function CustomVideoPlayer({
   const toggleFullscreen = useCallback(() => {
     if (!containerRef.current) return
     
-    if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen()
-      setIsFullscreen(true)
+    const container = containerRef.current
+    const doc = document as any
+    
+    if (!doc.fullscreenElement && !doc.webkitFullscreenElement && !doc.mozFullScreenElement) {
+      // Try different fullscreen APIs for mobile compatibility
+      const requestFullscreen = (container as any).requestFullscreen || 
+                              (container as any).webkitRequestFullscreen || 
+                              (container as any).webkitRequestFullScreen || 
+                              (container as any).mozRequestFullScreen || 
+                              (container as any).msRequestFullscreen
+      
+      if (requestFullscreen) {
+        requestFullscreen.call(container)
+        setIsFullscreen(true)
+      }
     } else {
-      document.exitFullscreen()
-      setIsFullscreen(false)
+      // Try different exit fullscreen APIs
+      const exitFullscreen = doc.exitFullscreen || 
+                           doc.webkitExitFullscreen || 
+                           doc.webkitCancelFullScreen || 
+                           doc.mozCancelFullScreen || 
+                           doc.msExitFullscreen
+      
+      if (exitFullscreen) {
+        exitFullscreen.call(doc)
+        setIsFullscreen(false)
+      }
     }
   }, [])
 
@@ -414,6 +435,36 @@ export default function CustomVideoPlayer({
     }
   }, [volume, isMuted])
 
+  // Fullscreen event listeners for mobile compatibility
+  useEffect(() => {
+    const doc = document as any
+    const handleFullscreenChange = () => {
+      const isFullscreenActive = !!(doc.fullscreenElement || 
+                                   doc.webkitFullscreenElement || 
+                                   doc.mozFullScreenElement || 
+                                   doc.msFullscreenElement)
+      setIsFullscreen(isFullscreenActive)
+    }
+
+    // Add event listeners for different browsers
+    const events = [
+      'fullscreenchange',
+      'webkitfullscreenchange',
+      'mozfullscreenchange',
+      'MSFullscreenChange'
+    ]
+
+    events.forEach(event => {
+      doc.addEventListener(event, handleFullscreenChange)
+    })
+
+    return () => {
+      events.forEach(event => {
+        doc.removeEventListener(event, handleFullscreenChange)
+      })
+    }
+  }, [])
+
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600)
     const m = Math.floor((seconds % 3600) / 60)
@@ -429,6 +480,19 @@ export default function CustomVideoPlayer({
     <div 
       ref={containerRef}
       className="relative w-full aspect-video bg-black rounded-lg overflow-hidden group"
+      style={{
+        ...(isFullscreen && {
+          width: '100vw',
+          height: '100vh',
+          maxWidth: '100vw',
+          maxHeight: '100vh',
+          borderRadius: '0',
+          position: 'fixed',
+          top: '0',
+          left: '0',
+          zIndex: '9999'
+        })
+      }}
       onMouseMove={() => setShowControls(true)}
       onMouseLeave={() => isPlaying && setShowControls(false)}
     >
