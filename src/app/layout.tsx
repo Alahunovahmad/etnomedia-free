@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import '../../filter-logs' // Фильтрация логов
 import Navbar from '@/components/shared/Navbar'
 import Footer from '@/components/shared/Footer'
 import ContinueWatchingProvider from '@/components/player/ContinueWatchingProvider'

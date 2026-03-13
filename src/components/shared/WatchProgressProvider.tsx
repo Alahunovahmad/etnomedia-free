@@ -36,6 +36,8 @@ export function WatchProgressProvider({ children }: { children: React.ReactNode 
 
   // Загрузка прогресса для списка фильмов
   const loadProgress = async (movieIds: number[]) => {
+    if (movieIds.length === 0) return
+
     try {
       // Проверяем авторизацию через API
       const authResponse = await fetch('/api/auth/me')
@@ -43,36 +45,14 @@ export function WatchProgressProvider({ children }: { children: React.ReactNode 
         return // Пользователь не авторизован
       }
 
-      const progressPromises = movieIds.map(async (movieId: number) => {
-        try {
-          const response = await fetch(`/api/history?movieId=${movieId}`)
-          if (response.ok) {
-            const data = await response.json()
-            if (data.watchHistory) {
-              // Для получения процента нужно знать длительность фильма
-              // Пока вернем timecode, потом можно будет получить duration из API
-              return { movieId, timecode: data.watchHistory.timecode }
-            }
-          }
-        } catch (error) {
-          console.error(`Failed to load progress for movie ${movieId}:`, error)
-        }
-        return null
-      })
-
-      const results = await Promise.all(progressPromises)
-      const newProgress: WatchProgress = {}
-      
-      results.forEach(result => {
-        if (result) {
-          // Временно сохраняем timecode как процент (будет исправлено при получении duration)
-          newProgress[result.movieId] = result.timecode
-        }
-      })
-
-      setProgress(newProgress)
+      // Используем один batch запрос вместо множества отдельных
+      const response = await fetch(`/api/watch-progress/batch?movieIds=${movieIds.join(',')}`)
+      if (response.ok) {
+        const batchProgress = await response.json()
+        setProgress(batchProgress)
+      }
     } catch (error) {
-      console.error('Failed to load watch progress:', error)
+      console.error('Failed to load batch progress:', error)
     }
   }
 

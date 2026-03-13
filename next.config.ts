@@ -12,6 +12,18 @@ const nextConfig = {
       },
     ],
   },
+  // Отключаем избыточное логирование
+  logging: {
+    fetches: {
+      fullUrl: false,
+    },
+  },
+  // Уменьшаем детализацию логов в development
+  devIndicators: {
+    appIsrStatus: false,
+    buildActivity: false,
+    buildActivityPosition: 'bottom-right',
+  },
 }
 
 export default nextConfig

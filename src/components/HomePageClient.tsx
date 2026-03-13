@@ -6,6 +6,7 @@ import { Movie, Series } from '@/types'
 import MovieCard from '@/components/shared/MovieCard'
 import SeriesCard from '@/components/shared/SeriesCard'
 import GenreChips from '@/components/shared/GenreChips'
+import HeroCarouselWrapper from '@/components/shared/HeroCarouselWrapper'
 
 interface HomePageClientProps {
   movies: Movie[]
@@ -24,51 +25,8 @@ export default function HomePageClient({ movies, series, user }: HomePageClientP
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Hero Section */}
-      <section className="relative h-[70vh] min-h-[500px]">
-        <div className="absolute inset-0">
-          <img
-            src="https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=1920&h=1080&fit=crop"
-            alt="Hero background"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/50 to-transparent"></div>
-        </div>
-        
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between">
-          <div className="max-w-xl">
-            <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
-              ГОРЯЧИЕ
-              <span className="text-red-600"> НОВИНКИ</span>
-            </h1>
-            <p className="text-lg text-gray-300 mb-8">
-              Смотрите лучшие премьеры этого месяца в высоком качестве
-            </p>
-            <button className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-md text-lg font-semibold transition-colors">
-              Смотреть
-            </button>
-          </div>
-          
-          {/* User Info */}
-          {user && (
-            <div className="text-right">
-              <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-4 border border-gray-700">
-                <p className="text-sm text-gray-400 mb-1">Вы вошли как</p>
-                <p className="text-white font-semibold">
-                  {user.firstName || 'Пользователь'}
-                  {user.lastName && ` ${user.lastName}`}
-                </p>
-                {user.username && (
-                  <p className="text-gray-400 text-sm">@{user.username}</p>
-                )}
-                <div className="mt-2 text-xs text-gray-500">
-                  {user.role === 'ADMIN' ? '👑 Администратор' : '👤 Пользователь'}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
+      {/* Hero Section с новой каруселью */}
+      <HeroCarouselWrapper />
 
       {/* Genre Chips */}
       <GenreChips />
