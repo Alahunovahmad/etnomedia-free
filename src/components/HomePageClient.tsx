@@ -25,7 +25,7 @@ export default function HomePageClient({ movies, series, user }: HomePageClientP
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Hero Section с новой каруселью */}
+      {/* Hero Section с каруселью */}
       <HeroCarouselWrapper />
 
       {/* Genre Chips */}
