@@ -9,7 +9,8 @@ import {
   Users, 
   Settings,
   LogOut,
-  Shield
+  Shield,
+  Plus
 } from 'lucide-react'
 import { AdminSidebarItem } from '@/types/admin'
 
@@ -18,6 +19,11 @@ const sidebarItems: AdminSidebarItem[] = [
     label: 'Дашборд',
     href: '/admin',
     icon: 'LayoutDashboard'
+  },
+  {
+    label: 'Добавить контент',
+    href: '/admin/add-content',
+    icon: 'Plus'
   },
   {
     label: 'Фильмы',
@@ -46,7 +52,8 @@ const iconMap = {
   Film,
   Tv,
   Users,
-  Settings
+  Settings,
+  Plus
 }
 
 export default function AdminSidebar() {
