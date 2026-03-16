@@ -1,6 +1,19 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+interface SeasonData {
+  number: number
+  episodes: EpisodeData[]
+}
+
+interface EpisodeData {
+  number: number
+  title: string
+  description?: string
+  m3u8Url: string
+  duration?: number
+}
+
 export async function POST(request: Request) {
     try {
         const data = await request.json()
@@ -16,7 +29,9 @@ export async function POST(request: Request) {
             actors,
             directors,
             genres,
-            type
+            type,
+            m3u8Url,
+            seasons
         } = data
 
         if (!title) {
@@ -45,7 +60,7 @@ export async function POST(request: Request) {
                     title,
                     description,
                     posterUrl: poster_url,
-                    m3u8Url: '', // Временно пустое поле, нужно будет заполнить позже
+                    m3u8Url: m3u8Url || '',
                     bgImage: bg_image,
                     year: year ? parseInt(year.toString()) : null,
                     rating: rating ? parseFloat(rating.toString()) : null,
@@ -56,8 +71,9 @@ export async function POST(request: Request) {
                     genres
                 }
             })
-        } else {
-            await prisma.series.create({
+        } else if (type === 'series') {
+            // Создаем сериал
+            const series = await prisma.series.create({
                 data: {
                     title,
                     description,
@@ -70,6 +86,27 @@ export async function POST(request: Request) {
                     genres
                 }
             })
+
+            // Создаем эпизоды если они есть
+            if (seasons && Array.isArray(seasons)) {
+                for (const season of seasons) {
+                    // Создаем эпизоды для сезона
+                    if (season.episodes && Array.isArray(season.episodes)) {
+                        for (const episode of season.episodes) {
+                            await prisma.episode.create({
+                                data: {
+                                    seriesId: series.id,
+                                    season: season.number,
+                                    episodeNumber: episode.number,
+                                    title: episode.title,
+                                    m3u8Url: episode.m3u8Url,
+                                    duration: episode.duration || null
+                                }
+                            })
+                        }
+                    }
+                }
+            }
         }
 
         return NextResponse.json({ 

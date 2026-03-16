@@ -16,6 +16,21 @@ interface ContentData {
   directors: string
   genres: string
   type: 'movie' | 'series'
+  m3u8Url?: string
+  seasons?: SeasonData[]
+}
+
+interface SeasonData {
+  number: number
+  episodes: EpisodeData[]
+}
+
+interface EpisodeData {
+  number: number
+  title: string
+  description?: string
+  m3u8Url: string
+  duration?: number
 }
 
 export default function AddContentPage() {
@@ -26,6 +41,7 @@ export default function AddContentPage() {
   const [enrichedData, setEnrichedData] = useState<ContentData | null>(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [currentStep, setCurrentStep] = useState<'search' | 'edit' | 'episodes'>('search')
 
   const searchEtnomedia = async () => {
     if (!searchQuery.trim()) {
@@ -56,8 +72,14 @@ export default function AddContentPage() {
       }
 
       if (data.success && data.data) {
-        setEnrichedData(data.data)
+        const enriched = {
+          ...data.data,
+          type: contentType,
+          seasons: contentType === 'series' ? [{ number: 1, episodes: [] }] : []
+        }
+        setEnrichedData(enriched)
         setSuccess('Данные успешно получены из Etnomedia')
+        setCurrentStep('edit')
       } else {
         setError('Не удалось найти данные в Etnomedia')
       }
@@ -66,6 +88,77 @@ export default function AddContentPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const addSeason = () => {
+    if (!enrichedData) return
+    
+    const newSeasonNumber = enrichedData.seasons ? enrichedData.seasons.length + 1 : 1
+    setEnrichedData({
+      ...enrichedData,
+      seasons: [...(enrichedData.seasons || []), { number: newSeasonNumber, episodes: [] }]
+    })
+  }
+
+  const removeSeason = (seasonNumber: number) => {
+    if (!enrichedData || !enrichedData.seasons) return
+    
+    setEnrichedData({
+      ...enrichedData,
+      seasons: enrichedData.seasons.filter(s => s.number !== seasonNumber)
+    })
+  }
+
+  const addEpisode = (seasonNumber: number) => {
+    if (!enrichedData || !enrichedData.seasons) return
+    
+    const season = enrichedData.seasons.find(s => s.number === seasonNumber)
+    if (!season) return
+    
+    const newEpisodeNumber = season.episodes.length + 1
+    const updatedSeasons = enrichedData.seasons.map(s => 
+      s.number === seasonNumber 
+        ? { ...s, episodes: [...s.episodes, { 
+            number: newEpisodeNumber, 
+            title: `Серия ${newEpisodeNumber}`, 
+            m3u8Url: '',
+            duration: undefined 
+          }] }
+        : s
+    )
+    
+    setEnrichedData({ ...enrichedData, seasons: updatedSeasons })
+  }
+
+  const removeEpisode = (seasonNumber: number, episodeNumber: number) => {
+    if (!enrichedData || !enrichedData.seasons) return
+    
+    const updatedSeasons = enrichedData.seasons.map(s => 
+      s.number === seasonNumber 
+        ? { ...s, episodes: s.episodes.filter(e => e.number !== episodeNumber) }
+        : s
+    )
+    
+    setEnrichedData({ ...enrichedData, seasons: updatedSeasons })
+  }
+
+  const updateEpisode = (seasonNumber: number, episodeNumber: number, field: keyof EpisodeData, value: string | number) => {
+    if (!enrichedData || !enrichedData.seasons) return
+    
+    const updatedSeasons = enrichedData.seasons.map(s => 
+      s.number === seasonNumber 
+        ? { 
+            ...s, 
+            episodes: s.episodes.map(e => 
+              e.number === episodeNumber 
+                ? { ...e, [field]: field === 'number' || field === 'duration' ? parseInt(value.toString()) : value }
+                : e
+            )
+          }
+        : s
+    )
+    
+    setEnrichedData({ ...enrichedData, seasons: updatedSeasons })
   }
 
   const saveToDatabase = async () => {
@@ -84,10 +177,7 @@ export default function AddContentPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...enrichedData,
-          type: contentType
-        })
+        body: JSON.stringify(enrichedData)
       })
 
       const data = await response.json()
@@ -102,6 +192,7 @@ export default function AddContentPage() {
       setTimeout(() => {
         setSearchQuery('')
         setEnrichedData(null)
+        setCurrentStep('search')
         setSuccess('')
       }, 2000)
     } catch (err) {
@@ -119,41 +210,64 @@ export default function AddContentPage() {
           <p className="text-gray-400">Поиск и добавление фильмов/сериалов с обогащением данных из Etnomedia</p>
         </div>
 
-        {/* Форма поиска */}
-        <div className="bg-gray-900 rounded-lg p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Тип контента</label>
-              <select
-                value={contentType}
-                onChange={(e) => setContentType(e.target.value as 'movie' | 'series')}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-red-500"
-              >
-                <option value="movie">Фильм</option>
-                <option value="series">Сериал</option>
-              </select>
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium mb-2">Название для поиска</label>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Введите название фильма или сериала..."
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-red-500"
-                onKeyPress={(e) => e.key === 'Enter' && searchEtnomedia()}
-              />
-            </div>
+        {/* Шаги */}
+        <div className="flex items-center gap-4 mb-8">
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+            currentStep === 'search' ? 'bg-red-600' : 'bg-gray-700'
+          }`}>
+            <span className="font-medium">1. Поиск</span>
           </div>
-
-          <button
-            onClick={searchEtnomedia}
-            disabled={loading}
-            className="px-6 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-700 rounded-lg font-medium transition-colors"
-          >
-            {loading ? 'Поиск...' : 'Найти в Etnomedia'}
-          </button>
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+            currentStep === 'edit' ? 'bg-red-600' : 'bg-gray-700'
+          }`}>
+            <span className="font-medium">2. Редактирование</span>
+          </div>
+          {contentType === 'series' && (
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+              currentStep === 'episodes' ? 'bg-red-600' : 'bg-gray-700'
+            }`}>
+              <span className="font-medium">3. Серии</span>
+            </div>
+          )}
         </div>
+
+        {/* Шаг 1: Поиск */}
+        {currentStep === 'search' && (
+          <div className="bg-gray-900 rounded-lg p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Тип контента</label>
+                <select
+                  value={contentType}
+                  onChange={(e) => setContentType(e.target.value as 'movie' | 'series')}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-red-500"
+                >
+                  <option value="movie">Фильм</option>
+                  <option value="series">Сериал</option>
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-2">Название для поиска</label>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Введите название фильма или сериала..."
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-red-500"
+                  onKeyPress={(e) => e.key === 'Enter' && searchEtnomedia()}
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={searchEtnomedia}
+              disabled={loading}
+              className="px-6 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-700 rounded-lg font-medium transition-colors"
+            >
+              {loading ? 'Поиск...' : 'Найти в Etnomedia'}
+            </button>
+          </div>
+        )}
 
         {/* Сообщения */}
         {error && (
@@ -168,10 +282,37 @@ export default function AddContentPage() {
           </div>
         )}
 
-        {/* Результаты поиска */}
-        {enrichedData && (
+        {/* Шаг 2: Редактирование */}
+        {currentStep === 'edit' && enrichedData && (
           <div className="bg-gray-900 rounded-lg p-6">
-            <h2 className="text-xl font-bold mb-4">Найденные данные</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Редактирование данных</h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCurrentStep('search')}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg font-medium transition-colors"
+                >
+                  Назад к поиску
+                </button>
+                {contentType === 'series' && (
+                  <button
+                    onClick={() => setCurrentStep('episodes')}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-medium transition-colors"
+                  >
+                    Далее к сериям
+                  </button>
+                )}
+                {contentType === 'movie' && (
+                  <button
+                    onClick={saveToDatabase}
+                    disabled={loading}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-700 rounded-lg font-medium transition-colors"
+                  >
+                    {loading ? 'Сохранение...' : 'Сохранить фильм'}
+                  </button>
+                )}
+              </div>
+            </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Постер и основная информация */}
@@ -185,11 +326,40 @@ export default function AddContentPage() {
                 )}
                 
                 <div className="space-y-2">
-                  <h3 className="text-2xl font-bold">{enrichedData.title}</h3>
-                  {enrichedData.year && <p className="text-gray-400">Год: {enrichedData.year}</p>}
-                  {enrichedData.rating && <p className="text-gray-400">Рейтинг: {enrichedData.rating}</p>}
-                  {enrichedData.duration && <p className="text-gray-400">Длительность: {enrichedData.duration} мин</p>}
-                  {enrichedData.genres && <p className="text-gray-400">Жанры: {enrichedData.genres}</p>}
+                  <input
+                    type="text"
+                    value={enrichedData.title}
+                    onChange={(e) => setEnrichedData({...enrichedData, title: e.target.value})}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-red-500 text-2xl font-bold"
+                  />
+                  {enrichedData.year && (
+                    <input
+                      type="number"
+                      value={enrichedData.year}
+                      onChange={(e) => setEnrichedData({...enrichedData, year: parseInt(e.target.value)})}
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-red-500"
+                      placeholder="Год"
+                    />
+                  )}
+                  {enrichedData.rating && (
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={enrichedData.rating}
+                      onChange={(e) => setEnrichedData({...enrichedData, rating: parseFloat(e.target.value)})}
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-red-500"
+                      placeholder="Рейтинг"
+                    />
+                  )}
+                  {enrichedData.duration && contentType === 'movie' && (
+                    <input
+                      type="number"
+                      value={enrichedData.duration}
+                      onChange={(e) => setEnrichedData({...enrichedData, duration: parseInt(e.target.value)})}
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-red-500"
+                      placeholder="Длительность (мин)"
+                    />
+                  )}
                 </div>
               </div>
 
@@ -204,25 +374,44 @@ export default function AddContentPage() {
                   />
                 </div>
 
-                {enrichedData.actors && (
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Актеры</label>
-                    <input
-                      type="text"
-                      value={enrichedData.actors}
-                      onChange={(e) => setEnrichedData({...enrichedData, actors: e.target.value})}
-                      className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-red-500"
-                    />
-                  </div>
-                )}
+                <div>
+                  <label className="block text-sm font-medium mb-1">Актеры</label>
+                  <input
+                    type="text"
+                    value={enrichedData.actors}
+                    onChange={(e) => setEnrichedData({...enrichedData, actors: e.target.value})}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-red-500"
+                  />
+                </div>
 
-                {enrichedData.directors && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Режиссеры</label>
+                  <input
+                    type="text"
+                    value={enrichedData.directors}
+                    onChange={(e) => setEnrichedData({...enrichedData, directors: e.target.value})}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-red-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Жанры</label>
+                  <input
+                    type="text"
+                    value={enrichedData.genres}
+                    onChange={(e) => setEnrichedData({...enrichedData, genres: e.target.value})}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-red-500"
+                  />
+                </div>
+
+                {contentType === 'movie' && (
                   <div>
-                    <label className="block text-sm font-medium mb-1">Режиссеры</label>
+                    <label className="block text-sm font-medium mb-1">M3U8 URL *</label>
                     <input
                       type="text"
-                      value={enrichedData.directors}
-                      onChange={(e) => setEnrichedData({...enrichedData, directors: e.target.value})}
+                      value={enrichedData.m3u8Url || ''}
+                      onChange={(e) => setEnrichedData({...enrichedData, m3u8Url: e.target.value})}
+                      placeholder="Обязательное поле для фильма"
                       className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-red-500"
                     />
                   </div>
@@ -262,22 +451,121 @@ export default function AddContentPage() {
                 )}
               </div>
             </div>
+          </div>
+        )}
 
-            {/* Кнопки действий */}
-            <div className="flex gap-4 mt-6">
-              <button
-                onClick={saveToDatabase}
-                disabled={loading}
-                className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-700 rounded-lg font-medium transition-colors"
-              >
-                {loading ? 'Сохранение...' : `Добавить ${contentType === 'movie' ? 'фильм' : 'сериал'} в базу`}
-              </button>
+        {/* Шаг 3: Серии (только для сериалов) */}
+        {currentStep === 'episodes' && enrichedData && contentType === 'series' && (
+          <div className="bg-gray-900 rounded-lg p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold">Управление сезонами и сериями</h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCurrentStep('edit')}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg font-medium transition-colors"
+                >
+                  Назад к редактированию
+                </button>
+                <button
+                  onClick={saveToDatabase}
+                  disabled={loading}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-700 rounded-lg font-medium transition-colors"
+                >
+                  {loading ? 'Сохранение...' : 'Сохранить сериал'}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              {enrichedData.seasons?.map((season) => (
+                <div key={season.number} className="bg-gray-800 rounded-lg p-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">Сезон {season.number}</h3>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => addEpisode(season.number)}
+                        className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm font-medium transition-colors"
+                      >
+                        + Добавить серию
+                      </button>
+                      <button
+                        onClick={() => removeSeason(season.number)}
+                        className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-sm font-medium transition-colors"
+                      >
+                        Удалить сезон
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {season.episodes.map((episode) => (
+                      <div key={episode.number} className="bg-gray-700 rounded-lg p-3">
+                        <div className="flex justify-between items-start mb-3">
+                          <h4 className="font-medium">Серия {episode.number}</h4>
+                          <button
+                            onClick={() => removeEpisode(season.number, episode.number)}
+                            className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs font-medium transition-colors"
+                          >
+                            Удалить
+                          </button>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium mb-1">Название</label>
+                            <input
+                              type="text"
+                              value={episode.title}
+                              onChange={(e) => updateEpisode(season.number, episode.number, 'title', e.target.value)}
+                              className="w-full px-2 py-1 bg-gray-600 border border-gray-500 rounded text-sm focus:outline-none focus:border-red-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium mb-1">M3U8 URL *</label>
+                            <input
+                              type="text"
+                              value={episode.m3u8Url}
+                              onChange={(e) => updateEpisode(season.number, episode.number, 'm3u8Url', e.target.value)}
+                              placeholder="Обязательное поле"
+                              className="w-full px-2 py-1 bg-gray-600 border border-gray-500 rounded text-sm focus:outline-none focus:border-red-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium mb-1">Длительность (мин)</label>
+                            <input
+                              type="number"
+                              value={episode.duration || ''}
+                              onChange={(e) => updateEpisode(season.number, episode.number, 'duration', e.target.value)}
+                              className="w-full px-2 py-1 bg-gray-600 border border-gray-500 rounded text-sm focus:outline-none focus:border-red-500"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="mt-3">
+                          <label className="block text-xs font-medium mb-1">Описание</label>
+                          <textarea
+                            value={episode.description || ''}
+                            onChange={(e) => updateEpisode(season.number, episode.number, 'description', e.target.value)}
+                            className="w-full px-2 py-1 bg-gray-600 border border-gray-500 rounded text-sm focus:outline-none focus:border-red-500 h-16 resize-none"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {season.episodes.length === 0 && (
+                      <div className="text-center py-4 text-gray-400">
+                        Нет серий. Нажмите "Добавить серию" чтобы начать.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
               
               <button
-                onClick={() => setEnrichedData(null)}
-                className="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg font-medium transition-colors"
+                onClick={addSeason}
+                className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-medium transition-colors"
               >
-                Отмена
+                + Добавить сезон
               </button>
             </div>
           </div>
