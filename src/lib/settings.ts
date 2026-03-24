@@ -38,3 +38,14 @@ export async function isRegistrationEnabled(): Promise<boolean> {
   const value = await getSetting('enableRegistration', 'true')
   return value === 'true'
 }
+
+export async function isDevMode(): Promise<boolean> {
+  // Check environment variable first
+  if (process.env.DEV_MODE === 'true') {
+    return true
+  }
+  
+  // Check database setting
+  const value = await getSetting('devMode', 'false')
+  return value === 'true'
+}

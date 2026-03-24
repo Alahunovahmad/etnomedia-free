@@ -72,10 +72,12 @@ export default function CustomVideoPlayer({
   // Advanced features
   const [playbackRate, setPlaybackRate] = useState(1)
   const [showSettings, setShowSettings] = useState(false)
-  const [settingsTab, setSettingsTab] = useState<'quality' | 'speed'>('quality')
+  const [showQualityMenu, setShowQualityMenu] = useState(false)
+  const [showSpeedMenu, setShowSpeedMenu] = useState(false)
   const [qualities, setQualities] = useState<Array<{ height: number, bitrate: number }>>([])
   const [currentQuality, setCurrentQuality] = useState(-1)
   const [showNextEpisode, setShowNextEpisode] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
   // Watch position key
   const getWatchKey = () => {
@@ -92,6 +94,16 @@ export default function CustomVideoPlayer({
     setIsPlaying(false)
     setCurrentTime(0)
   }, [videoUrl])
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   // Initialize HLS
   useEffect(() => {
@@ -126,8 +138,6 @@ export default function CustomVideoPlayer({
           bitrate: level.bitrate
         }))
         setQualities(parsedQualities)
-        // Если нет выбора качества, сразу открываем вкладку скорости
-        if (parsedQualities.length === 0) setSettingsTab('speed')
       })
 
       hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
@@ -148,7 +158,6 @@ export default function CustomVideoPlayer({
       // Native HLS support (Safari)
       video.src = videoUrl
       setIsLoading(false)
-      setSettingsTab('speed') // В нативе HLS нельзя вручную переключать качество через JS
     }
   }, [videoUrl, initialTime])
 
@@ -421,6 +430,8 @@ export default function CustomVideoPlayer({
       controlsTimeoutRef.current = setTimeout(() => {
         setShowControls(false)
         setShowSettings(false)
+        setShowQualityMenu(false)
+        setShowSpeedMenu(false)
       }, 5000)
     }
     return () => {
@@ -440,7 +451,7 @@ export default function CustomVideoPlayer({
   const changeQuality = (level: number) => {
     if (hlsRef.current) {
       hlsRef.current.currentLevel = level
-      setShowSettings(false)
+      setShowQualityMenu(false)
     }
   }
 
@@ -448,7 +459,7 @@ export default function CustomVideoPlayer({
     if (videoRef.current) {
       videoRef.current.playbackRate = rate
       setPlaybackRate(rate)
-      setShowSettings(false)
+      setShowSpeedMenu(false)
     }
   }
 
@@ -470,6 +481,16 @@ export default function CustomVideoPlayer({
       return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
     }
     return `${m}:${s.toString().padStart(2, '0')}`
+  }
+
+  const getCurrentQualityDisplay = () => {
+    if (currentQuality === -1) return 'Авто'
+    const quality = qualities[currentQuality]
+    return quality ? `${quality.height}p` : 'Авто'
+  }
+
+  const getCurrentSpeedDisplay = () => {
+    return `${playbackRate}x`
   }
 
   return (
@@ -531,11 +552,11 @@ export default function CustomVideoPlayer({
         )}
 
         {/* Bottom Controls */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 space-y-4 pointer-events-auto">
+        <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 pointer-events-auto">
           {/* Progress Bar */}
           <div 
             ref={progressBarRef}
-            className="relative h-1.5 md:h-1 bg-gray-600/50 rounded-full cursor-pointer group/progress"
+            className="relative h-1 sm:h-1.5 bg-gray-600/50 rounded-full cursor-pointer group/progress"
             onClick={handleProgressClick}
           >
             {/* Buffered */}
@@ -549,21 +570,21 @@ export default function CustomVideoPlayer({
               style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
             />
             {/* Hover indicator */}
-            <div className="absolute top-1/2 -translate-y-1/2 h-3 w-3 md:h-3 md:w-3 bg-red-600 rounded-full opacity-100 md:opacity-0 group-hover/progress:opacity-100 transition-opacity shadow-sm"
+            <div className="absolute top-1/2 -translate-y-1/2 h-2.5 w-2.5 sm:h-3 sm:w-3 bg-red-600 rounded-full opacity-100 sm:opacity-0 group-hover/progress:opacity-100 transition-opacity shadow-sm"
               style={{ left: `${duration ? (currentTime / duration) * 100 : 0}%`, transform: 'translate(-50%, -50%)' }}
             />
           </div>
 
           {/* Control Buttons */}
           <div className="flex items-center justify-between text-white">
-            <div className="flex items-center gap-3 md:gap-4">
+            <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
               <button onClick={togglePlay} className="hover:text-red-500 transition-colors p-1">
-                {isPlaying ? <Pause className="w-6 h-6 md:w-8 md:h-8 fill-current" /> : <Play className="w-6 h-6 md:w-8 md:h-8 fill-current" />}
+                {isPlaying ? <Pause className="w-5 h-5 sm:w-6 sm:h-8 fill-current" /> : <Play className="w-5 h-5 sm:w-6 sm:h-8 fill-current" />}
               </button>
 
-              <div className="hidden sm:flex items-center gap-2 group/volume">
+              <div className="flex items-center gap-1 sm:gap-2 group/volume">
                 <button onClick={toggleMute} className="hover:text-red-500 transition-colors p-1">
-                  {isMuted || volume === 0 ? <VolumeX className="w-5 h-5 md:w-6 md:h-6" /> : <Volume2 className="w-5 h-5 md:w-6 md:h-6" />}
+                  {isMuted || volume === 0 ? <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" /> : <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />}
                 </button>
                 <input
                   type="range"
@@ -575,90 +596,89 @@ export default function CustomVideoPlayer({
                     setVolume(parseFloat(e.target.value))
                     setIsMuted(false)
                   }}
-                  className="w-0 opacity-0 group-hover/volume:w-20 group-hover/volume:opacity-100 transition-all duration-300 accent-red-600 cursor-pointer"
+                  className="w-0 opacity-0 group-hover/volume:w-16 group-hover/volume:opacity-100 transition-all duration-300 accent-red-600 cursor-pointer sm:w-20"
                 />
               </div>
 
-              <span className="text-xs md:text-sm font-medium tracking-wide">
+              <span className="text-xs font-medium tracking-wide">
                 {formatTime(currentTime)} / {formatTime(duration)}
               </span>
             </div>
 
-            <div className="flex items-center gap-2 md:gap-4">
+            <div className="flex items-center gap-1 sm:gap-2 md:gap-4">
               {/* Settings */}
               <div className="relative">
                 <button 
                   onClick={() => setShowSettings(!showSettings)}
                   className={`hover:text-red-500 transition-colors p-1 ${showSettings ? 'text-red-500' : ''}`}
                 >
-                  <Settings className="w-5 h-5 md:w-6 md:h-6" />
+                  <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
 
-                {/* TABBED SETTINGS MENU */}
+                {/* NEW SETTINGS MENU WITH SEPARATE BUTTONS */}
                 {showSettings && (
-                  <div className="absolute bottom-[calc(100%+1rem)] right-0 bg-[#1e1e1e]/95 backdrop-blur-md border border-white/10 rounded-xl p-3 w-[240px] shadow-2xl z-50 flex flex-col max-h-[50vh] overflow-hidden">
+                  <div className={`absolute ${isMobile ? 'bottom-[calc(100%+0.5rem)] right-0 w-[140px]' : 'bottom-[calc(100%+1rem)] right-0 w-[200px]'} bg-[#1e1e1e]/95 backdrop-blur-md border border-white/10 rounded-xl p-1 sm:p-2 shadow-2xl z-50`}>
                     
-                    {/* Tabs Header */}
-                    <div className="flex items-center bg-white/5 rounded-lg p-1 mb-3 shrink-0">
-                      {qualities.length > 0 && (
+                    {/* Quality Button */}
+                    {qualities.length > 0 && (
+                      <div className="relative mb-1">
                         <button
-                          onClick={() => setSettingsTab('quality')}
-                          className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                            settingsTab === 'quality' 
-                              ? 'bg-white/20 text-white shadow-sm' 
-                              : 'text-white/60 hover:text-white'
-                          }`}
+                          onClick={() => setShowQualityMenu(!showQualityMenu)}
+                          className="w-full flex items-center justify-between px-1 py-0.5 bg-white/5 hover:bg-white/10 rounded transition-colors text-[7px] sm:text-xs text-white"
                         >
-                          Качество
+                          <span>Качество</span>
+                          <span className="text-red-400 font-medium">{getCurrentQualityDisplay()}</span>
                         </button>
-                      )}
-                      <button
-                        onClick={() => setSettingsTab('speed')}
-                        className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                          settingsTab === 'speed' 
-                            ? 'bg-white/20 text-white shadow-sm' 
-                            : 'text-white/60 hover:text-white'
-                        }`}
-                      >
-                        Скорость
-                      </button>
-                    </div>
-
-                    {/* Scrollable Content */}
-                    <div className="overflow-y-auto pr-1 flex-1 -mr-1">
-                      {settingsTab === 'quality' && qualities.length > 0 ? (
-                        <div className="space-y-1">
-                          <button
-                            onClick={() => changeQuality(-1)}
-                            className={`block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                              currentQuality === -1 ? 'bg-red-600/90 text-white font-medium' : 'hover:bg-white/10 text-gray-200'
-                            }`}
-                          >
-                            Автоматически
-                          </button>
-                          {qualities.map((quality: any, index: number) => (
+                        
+                        {/* Quality Dropdown */}
+                        {showQualityMenu && (
+                          <div className="absolute bottom-[calc(100%+0.25rem)] left-0 right-0 bg-[#1e1e1e]/95 backdrop-blur-md border border-white/10 rounded p-1 z-10">
                             <button
-                              key={index}
-                              onClick={() => changeQuality(index)}
-                              className={`block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                                currentQuality === index ? 'bg-red-600/90 text-white font-medium' : 'hover:bg-white/10 text-gray-200'
+                              onClick={() => changeQuality(-1)}
+                              className={`block w-full text-left px-1 py-0.5 rounded text-[7px] transition-colors ${
+                                currentQuality === -1 ? 'bg-red-600/90 text-white font-medium' : 'hover:bg-white/10 text-gray-200'
                               }`}
                             >
-                              {quality.height}p
+                              Авто
                             </button>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="space-y-1">
+                            {qualities.map((quality: any, index: number) => (
+                              <button
+                                key={index}
+                                onClick={() => changeQuality(index)}
+                                className={`block w-full text-left px-1 py-0.5 rounded text-[7px] transition-colors ${
+                                  currentQuality === index ? 'bg-red-600/90 text-white font-medium' : 'hover:bg-white/10 text-gray-200'
+                                }`}
+                              >
+                                {quality.height}p
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Speed Button */}
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowSpeedMenu(!showSpeedMenu)}
+                        className="w-full flex items-center justify-between px-1 py-0.5 bg-white/5 hover:bg-white/10 rounded transition-colors text-[7px] sm:text-xs text-white"
+                      >
+                        <span>Скорость</span>
+                        <span className="text-red-400 font-medium">{getCurrentSpeedDisplay()}</span>
+                      </button>
+                      
+                      {/* Speed Dropdown */}
+                      {showSpeedMenu && (
+                        <div className="absolute bottom-[calc(100%+0.25rem)] left-0 right-0 bg-[#1e1e1e]/95 backdrop-blur-md border border-white/10 rounded p-1 z-10">
                           {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate: number) => (
                             <button
                               key={rate}
                               onClick={() => changePlaybackRate(rate)}
-                              className={`block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                              className={`block w-full text-left px-1 py-0.5 rounded text-[7px] transition-colors ${
                                 playbackRate === rate ? 'bg-red-600/90 text-white font-medium' : 'hover:bg-white/10 text-gray-200'
                               }`}
                             >
-                              {rate}x {rate === 1 && <span className="text-xs opacity-75 ml-1">(Обычная)</span>}
+                              {rate}x
                             </button>
                           ))}
                         </div>
@@ -669,11 +689,11 @@ export default function CustomVideoPlayer({
               </div>
 
               <button onClick={togglePiP} className="hidden sm:block hover:text-red-500 transition-colors p-1">
-                <PictureInPicture className="w-5 h-5 md:w-6 md:h-6" />
+                <PictureInPicture className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
 
               <button onClick={toggleFullscreen} className="hover:text-red-500 transition-colors p-1">
-                {isFullscreen ? <Minimize className="w-5 h-5 md:w-6 md:h-6" /> : <Maximize className="w-5 h-5 md:w-6 md:h-6" />}
+                {isFullscreen ? <Minimize className="w-4 h-4 sm:w-5 sm:h-5" /> : <Maximize className="w-4 h-4 sm:w-5 sm:h-5" />}
               </button>
             </div>
           </div>

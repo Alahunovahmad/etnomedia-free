@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers'
 import { jwtVerify } from 'jose'
 import { prisma } from './prisma'
+import { isDevMode } from './settings'
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'fallback-secret-change-in-production'
@@ -21,6 +22,24 @@ export interface User {
 
 export async function getUser(): Promise<User | null> {
   try {
+    // Check dev mode first
+    const devMode = await isDevMode()
+    if (devMode) {
+      // Return a mock admin user for development
+      return {
+        id: 0,
+        telegramId: null,
+        phoneNumber: null,
+        firstName: 'Dev',
+        lastName: 'User',
+        username: 'dev',
+        photoUrl: null,
+        role: 'ADMIN',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    }
+
     const cookieStore = await cookies()
     const token = cookieStore.get('etnomedia_session')?.value
 

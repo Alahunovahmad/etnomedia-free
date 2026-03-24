@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import HeroCarousel from './HeroCarousel'
 
 interface HeroItem {
@@ -17,6 +18,20 @@ interface HeroItem {
 export default function HeroCarouselWrapper() {
   const [items, setItems] = useState<HeroItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const router = useRouter()
+
+  const handleWatch = (item: HeroItem) => {
+    if (item.type === 'movie') {
+      router.push(`/movie/${item.id}`)
+    } else {
+      router.push(`/series/${item.id}`)
+    }
+  }
+
+  const handleBookmark = (item: HeroItem) => {
+    // TODO: Implement bookmark functionality
+    console.log('Add to bookmarks:', item.title)
+  }
 
   useEffect(() => {
     const fetchHeroItems = async () => {
@@ -56,5 +71,5 @@ export default function HeroCarouselWrapper() {
     )
   }
 
-  return <HeroCarousel items={items} />
+  return <HeroCarousel items={items} onWatch={handleWatch} onBookmark={handleBookmark} />
 }
