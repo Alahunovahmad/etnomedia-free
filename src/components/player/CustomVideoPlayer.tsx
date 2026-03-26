@@ -617,14 +617,14 @@ export default function CustomVideoPlayer({
 
                 {/* NEW SETTINGS MENU WITH SEPARATE BUTTONS */}
                 {showSettings && (
-                  <div className={`absolute ${isMobile ? 'bottom-[calc(100%+0.5rem)] right-0 w-[140px]' : 'bottom-[calc(100%+1rem)] right-0 w-[200px]'} bg-[#1e1e1e]/95 backdrop-blur-md border border-white/10 rounded-xl p-1 sm:p-2 shadow-2xl z-50`}>
+                  <div className={`absolute ${isMobile ? 'bottom-[calc(100%+0.5rem)] right-0 w-[140px]' : 'bottom-[calc(100%+1rem)] right-0 w-[240px]'} bg-[#1e1e1e]/95 backdrop-blur-md border border-white/10 rounded-xl ${isMobile ? 'p-1' : 'p-3'} shadow-2xl z-50`}>
                     
                     {/* Quality Button */}
                     {qualities.length > 0 && (
-                      <div className="relative mb-1">
+                      <div className={`relative ${isMobile ? 'mb-1' : 'mb-2'}`}>
                         <button
                           onClick={() => setShowQualityMenu(!showQualityMenu)}
-                          className="w-full flex items-center justify-between px-1 py-0.5 bg-white/5 hover:bg-white/10 rounded transition-colors text-[7px] sm:text-xs text-white"
+                          className={`w-full flex items-center justify-between ${isMobile ? 'px-1 py-0.5' : 'px-3 py-2'} bg-white/5 hover:bg-white/10 ${isMobile ? 'rounded' : 'rounded-lg'} transition-colors ${isMobile ? 'text-[7px]' : 'text-sm'} text-white`}
                         >
                           <span>Качество</span>
                           <span className="text-red-400 font-medium">{getCurrentQualityDisplay()}</span>
@@ -632,20 +632,20 @@ export default function CustomVideoPlayer({
                         
                         {/* Quality Dropdown */}
                         {showQualityMenu && (
-                          <div className="absolute bottom-[calc(100%+0.25rem)] left-0 right-0 bg-[#1e1e1e]/95 backdrop-blur-md border border-white/10 rounded p-1 z-10">
+                          <div className={`absolute bottom-[calc(100%+0.25rem)] left-0 right-0 bg-[#1e1e1e]/95 backdrop-blur-md border border-white/10 ${isMobile ? 'rounded p-1' : 'rounded-lg p-2'} z-10`}>
                             <button
                               onClick={() => changeQuality(-1)}
-                              className={`block w-full text-left px-1 py-0.5 rounded text-[7px] transition-colors ${
+                              className={`block w-full text-left ${isMobile ? 'px-1 py-0.5' : 'px-3 py-2'} ${isMobile ? 'rounded' : 'rounded-lg'} ${isMobile ? 'text-[7px]' : 'text-sm'} transition-colors ${
                                 currentQuality === -1 ? 'bg-red-600/90 text-white font-medium' : 'hover:bg-white/10 text-gray-200'
                               }`}
                             >
-                              Авто
+                              {isMobile ? 'Авто' : 'Автоматически'}
                             </button>
                             {qualities.map((quality: any, index: number) => (
                               <button
                                 key={index}
                                 onClick={() => changeQuality(index)}
-                                className={`block w-full text-left px-1 py-0.5 rounded text-[7px] transition-colors ${
+                                className={`block w-full text-left ${isMobile ? 'px-1 py-0.5' : 'px-3 py-2'} ${isMobile ? 'rounded' : 'rounded-lg'} ${isMobile ? 'text-[7px]' : 'text-sm'} transition-colors ${
                                   currentQuality === index ? 'bg-red-600/90 text-white font-medium' : 'hover:bg-white/10 text-gray-200'
                                 }`}
                               >
@@ -661,7 +661,7 @@ export default function CustomVideoPlayer({
                     <div className="relative">
                       <button
                         onClick={() => setShowSpeedMenu(!showSpeedMenu)}
-                        className="w-full flex items-center justify-between px-1 py-0.5 bg-white/5 hover:bg-white/10 rounded transition-colors text-[7px] sm:text-xs text-white"
+                        className={`w-full flex items-center justify-between ${isMobile ? 'px-1 py-0.5' : 'px-3 py-2'} bg-white/5 hover:bg-white/10 ${isMobile ? 'rounded' : 'rounded-lg'} transition-colors ${isMobile ? 'text-[7px]' : 'text-sm'} text-white`}
                       >
                         <span>Скорость</span>
                         <span className="text-red-400 font-medium">{getCurrentSpeedDisplay()}</span>
@@ -669,16 +669,16 @@ export default function CustomVideoPlayer({
                       
                       {/* Speed Dropdown */}
                       {showSpeedMenu && (
-                        <div className="absolute bottom-[calc(100%+0.25rem)] left-0 right-0 bg-[#1e1e1e]/95 backdrop-blur-md border border-white/10 rounded p-1 z-10">
+                        <div className={`absolute bottom-[calc(100%+0.25rem)] left-0 right-0 bg-[#1e1e1e]/95 backdrop-blur-md border border-white/10 ${isMobile ? 'rounded p-1' : 'rounded-lg p-2'} z-10`}>
                           {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate: number) => (
                             <button
                               key={rate}
                               onClick={() => changePlaybackRate(rate)}
-                              className={`block w-full text-left px-1 py-0.5 rounded text-[7px] transition-colors ${
+                              className={`block w-full text-left ${isMobile ? 'px-1 py-0.5' : 'px-3 py-2'} ${isMobile ? 'rounded' : 'rounded-lg'} ${isMobile ? 'text-[7px]' : 'text-sm'} transition-colors ${
                                 playbackRate === rate ? 'bg-red-600/90 text-white font-medium' : 'hover:bg-white/10 text-gray-200'
                               }`}
                             >
-                              {rate}x
+                              {rate}x {!isMobile && rate === 1 && <span className="text-xs opacity-75 ml-1">(Обычная)</span>}
                             </button>
                           ))}
                         </div>
