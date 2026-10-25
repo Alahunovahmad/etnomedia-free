@@ -649,7 +649,7 @@ export default function CustomVideoPlayer({
                                   currentQuality === index ? 'bg-red-600/90 text-white font-medium' : 'hover:bg-white/10 text-gray-200'
                                 }`}
                               >
-                                {quality.height}p
+                                {quality.height}
                               </button>
                             ))}
                           </div>
