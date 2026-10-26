@@ -60,7 +60,7 @@ export default function AdminSidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="w-64 bg-zinc-900 min-h-screen border-r border-zinc-800">
+    <aside className="relative w-64 bg-zinc-900 min-h-screen border-r border-zinc-800">
       {/* Header */}
       <div className="p-6 border-b border-zinc-800">
         <div className="flex items-center gap-3">
